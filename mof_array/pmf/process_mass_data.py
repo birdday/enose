@@ -6,6 +6,7 @@ Additionally, the best MOF arrays for detecting each gas are reported,
 according to the highest information gain.
 """
 import os
+import sys
 from math import isnan, log
 import csv
 from random import random
@@ -156,7 +157,7 @@ def calculate_pmf(experimental_mass_results, import_data_results, mofs_list, std
         for mof_mass in experimental_mass_data:
             # Sets up the truncated distribution parameters
             myclip_a, myclip_b = 0, float(max(all_masses)) * (1 + mrange)
-            my_mean, my_std = float(mof_mass), float(stdev)
+            my_mean, my_std = float(mof_mass), float(stdev) * float(mof_mass)
             a, b = (myclip_a - my_mean) / my_std, (myclip_b - my_mean) / my_std
 
             new_temp_dict = []
@@ -237,6 +238,7 @@ def array_pmf(gas_names, number_mofs, mof_names, calculate_pmf_results, experime
         num_mofs += 1
 
     # Nested loops take all combinations of array/gas/experiment
+    count = 0
     for mof_array in mof_array_list:
     # Calls outside function to calculate joint probability
         normalized_compound_pmfs = compound_probability(mof_array, calculate_pmf_results)
@@ -251,9 +253,7 @@ def array_pmf(gas_names, number_mofs, mof_names, calculate_pmf_results, experime
         else:
             # Update dictionary with pmf list for each array
             for index in range(len(array_temp_dict)):
-                array_dict = array_pmf[index].copy()
-                array_dict.update({'%s' % ' '.join(mof_array) : normalized_compound_pmfs[index]})
-                array_pmf[index] = array_dict
+                array_pmf[index]['%s' % ' '.join(mof_array)] = normalized_compound_pmfs[index]
 
     return(array_pmf, mof_array_list)
 
@@ -373,14 +373,14 @@ def save_array_pmf_data(gas_names, list_of_arrays, create_bins_results, bin_comp
             pmfs_to_save = [row['%s' % ' '.join(array)] for row in bin_compositions_results if '%s bin' % gas in row.keys()]
             pdfs_to_save = len(comps_to_save) * np.array(pmfs_to_save)
 
-            filename = "saved_data/%s/%s_%s.csv" % (data_directory, ' '.join(array), str(gas))
+            filename = "saved_data/%s/%s_%s.csv" % (data_directory, len(array), str(gas))
             pdf_data = np.column_stack((comps_to_save, pdfs_to_save))
             with open(filename,'w', newline='') as csvfile:
                 writer = csv.writer(csvfile, delimiter="\t")
                 for line in pdf_data:
                     writer.writerow(line)
 
-def save_raw_pmf_data(calculate_pmf_results):
+def save_raw_pmf_data(calculate_pmf_results, stdev, mrange, num_mofs):
     """Saves pmf and mole fraction data for each gas/MOF array combination
 
     Keyword arguments:
@@ -388,7 +388,7 @@ def save_raw_pmf_data(calculate_pmf_results):
     """
     csv_name = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
     data_frame = pd.DataFrame(calculate_pmf_results)
-    data_frame.to_csv('saved_raw_pmfs/%s.csv' % (csv_name), sep='\t')
+    data_frame.to_csv('saved_raw_pmfs/%s_mofs_%s_stdev_%s_mrange_%s.csv' % (num_mofs, stdev, mrange, csv_name), sep='\t')
 
 def information_gain(gas_names, list_of_arrays, bin_compositions_results, create_bins_results):
     """Calculates the Kullback-Liebler Divergence of a MOF array with each gas component.
