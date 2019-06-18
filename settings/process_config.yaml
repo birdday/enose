@@ -5,21 +5,16 @@
 # considered, and the mofs in the end array
 
 num_mixtures: 10
-num_bins: 31
-num_best_worst: 10
 mrange: .05
 stdev: 0.1
 
 number_mofs:
-  - 2
-  - 2
-  
-gases:
-  - CO2
-  - N2
-  - O2
+  - 10
+  - 10
 
-mof_list:
+number_bins: 31
+
+mof_array:
   - IRMOF-1
   - HKUST-1
   - NU-125
@@ -172,3 +167,8 @@ mofs:
     density: 3.194
   YEQRIV:
     density: 0.742
+
+gases:
+  - CO2
+  - N2
+  - O2
