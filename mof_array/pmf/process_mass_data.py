@@ -377,119 +377,6 @@ def bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results):
 
     return(binned_probabilities_sum, binned_probabilities_max)
 
-# ----- Plots pmf vs mole fraction for each gas/MOF array combination -----
-# Keyword arguments:
-#     gases -- list of gases specified by user
-#     list_of_arrays -- list of all array combinations
-#     bins -- dictionary result from create_bins
-#     binned_probabilities -- list of dictionaries, mof array, gas, pmfs
-def plot_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities):
-
-    # Make directory to store figures
-    timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
-    os.makedirs("figures/%s" % timestamp)
-
-    # Assign numbers to each array for shorthand notation
-    array_id_key = []
-    array_id_dict = {}
-    i = 0
-    num_elements = 0
-    for array in list_of_arrays:
-        if num_elements == len(array):
-            i += 1
-            num_elements = num_elements
-        else:
-            i = 1
-            num_elements = len(array)
-        array_id = str(num_elements)+'-'+str(i)
-        array_name = '%s' % ' '.join(array)
-        array_id_key.append([array_id, array_name])
-        array_id_dict.update({array_name: array_id})
-
-    filename = 'figures/%s/array_id_list.csv' % (timestamp)
-    with open(filename,'w', newline='') as csvfile:
-        writer = csv.writer(csvfile, delimiter="\t")
-        for key, val in array_id_dict.items():
-            writer.writerow([key, val])
-
-    # Generate the plots
-    array_names = ['%s' % ' '.join(array) for array in list_of_arrays]
-    for gas in gases:
-        for array in array_names:
-            # X-axis, list of mole fracs to plot, for relevant gas
-            comps_to_plot = [bin[gas] for bin in bins][0:len(bins)-1]
-            # Y-axis, list of pmf values to plot
-            pmfs_to_plot = [row[array] for row in binned_probabilities if '%s bin' % gas in row.keys()]
-            pdfs_to_plot = len(comps_to_plot) * np.array(pmfs_to_plot)
-            # Plot and save figure in a directory 'figures'
-            plot_PMF = plt.figure()
-            plt.rc('xtick', labelsize=20)
-            plt.rc('ytick', labelsize=20)
-            plt.plot(comps_to_plot, pdfs_to_plot, 'ro')
-            plt.title('Array: %s, Gas: %s' % (array, gas))
-            if len(array) <= 40:
-                plt.savefig("figures/%s/%s_%s.png" % (timestamp, array, str(gas)))
-            else:
-                plt.savefig("figures/%s/%s_%s.png" % (timestamp, 'Array #'+array_id_dict[array]+' (See Key)', str(gas)))
-            plt.close(plot_PMF)
-
-# ----- Saves pmf and mole fraction data for each gas/MOF array combination -----
-# Keyword arguments:
-#     gases -- list of gases specified by user
-#     list_of_arrays -- list of all arrays, and MOFs in each array
-#     bins -- dictionary result from create_bins
-#     binned_probabilities -- list of dictionaries, mof array, gas, pmfs
-def save_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities):
-
-    # Make directory to store pmf data
-    timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
-    os.makedirs("saved_array_pmfs/%s" % timestamp)
-
-    # Assign numbers to each array for shorthand notation
-    array_id_key = []
-    array_id_dict = {}
-    i = 0
-    num_elements = 0
-    for array in list_of_arrays:
-        if num_elements == len(array):
-            i += 1
-            num_elements = num_elements
-        else:
-            i = 1
-            num_elements = len(array)
-        array_id = str(num_elements)+'-'+str(i)
-        array_name = '%s' % ' '.join(array)
-        array_id_key.append([array_id, array_name])
-        array_id_dict.update({array_name: array_id})
-
-    filename = 'saved_array_pmfs/%s/array_id_list.csv' % (timestamp)
-    with open(filename,'w', newline='') as csvfile:
-        writer = csv.writer(csvfile, delimiter="\t")
-        for key, val in array_id_dict.items():
-            writer.writerow([key, val])
-
-    # Generate array data and write to file
-    for gas in gases:
-        comps_to_save = [bin[gas] for bin in bins][0:len(bins)-1]
-        for array in list_of_arrays:
-            array_name = '%s' % ' '.join(array)
-            pmfs_to_save = [row[array_name] for row in binned_probabilities if '%s bin' % gas in row.keys()]
-            pdfs_to_save = len(comps_to_save) * np.array(pmfs_to_save)
-            filename = "saved_array_pmfs/%s/%s_%s.csv" % (timestamp, str(array_id_dict[array_name]), str(gas))
-            pdf_data = np.column_stack((comps_to_save, pdfs_to_save))
-            with open(filename,'w', newline='') as csvfile:
-                writer = csv.writer(csvfile, delimiter="\t")
-                for line in pdf_data:
-                    writer.writerow(line)
-
-# ----- Saves pmf and mole fraction data for each gas/MOF combination -----
-# Keyword arguments:
-#     element_pmf_results -- list of dictionaries with all pmf values
-def save_element_pmf_data(element_pmf_results, stdev, mrange):
-    timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
-    data_frame = pd.DataFrame(element_pmf_results)
-    data_frame.to_csv('saved_element_pmfs/%s_stdev_%s_mrange_%s.csv' % (stdev, mrange, timestamp), sep='\t')
-
 # ----- Calculates the Kullback-Liebler Divergence of a MOF array with each gas component -----
 # Keyword arguments:
 #     gases -- list of gases specified by user
@@ -560,3 +447,116 @@ def choose_arrays(gases, num_mofs, array_kld_results, num_best_worst):
                         index +=1
 
     return(best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD, best_ranked_by_product)
+
+# ----- Saves pmf and mole fraction data for each gas/MOF combination -----
+# Keyword arguments:
+#     element_pmf_results -- list of dictionaries with all pmf values
+def save_element_pmf_data(element_pmf_results, stdev, mrange):
+    timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
+    data_frame = pd.DataFrame(element_pmf_results)
+    data_frame.to_csv('saved_element_pmfs/%s_stdev_%s_mrange_%s.csv' % (stdev, mrange, timestamp), sep='\t')
+
+# ----- Saves pmf and mole fraction data for each gas/MOF array combination -----
+# Keyword arguments:
+#     gases -- list of gases specified by user
+#     list_of_arrays -- list of all arrays, and MOFs in each array
+#     bins -- dictionary result from create_bins
+#     binned_probabilities -- list of dictionaries, mof array, gas, pmfs
+def save_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities):
+
+    # Make directory to store pmf data
+    timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
+    os.makedirs("saved_array_pmfs/%s" % timestamp)
+
+    # Assign numbers to each array for shorthand notation
+    array_id_key = []
+    array_id_dict = {}
+    i = 0
+    num_elements = 0
+    for array in list_of_arrays:
+        if num_elements == len(array):
+            i += 1
+            num_elements = num_elements
+        else:
+            i = 1
+            num_elements = len(array)
+        array_id = str(num_elements)+'-'+str(i)
+        array_name = '%s' % ' '.join(array)
+        array_id_key.append([array_id, array_name])
+        array_id_dict.update({array_name: array_id})
+
+    filename = 'saved_array_pmfs/%s/array_id_list.csv' % (timestamp)
+    with open(filename,'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter="\t")
+        for key, val in array_id_dict.items():
+            writer.writerow([key, val])
+
+    # Generate array data and write to file
+    for gas in gases:
+        comps_to_save = [bin[gas] for bin in bins][0:len(bins)-1]
+        for array in list_of_arrays:
+            array_name = '%s' % ' '.join(array)
+            pmfs_to_save = [row[array_name] for row in binned_probabilities if '%s bin' % gas in row.keys()]
+            pdfs_to_save = len(comps_to_save) * np.array(pmfs_to_save)
+            filename = "saved_array_pmfs/%s/%s_%s.csv" % (timestamp, str(array_id_dict[array_name]), str(gas))
+            pdf_data = np.column_stack((comps_to_save, pdfs_to_save))
+            with open(filename,'w', newline='') as csvfile:
+                writer = csv.writer(csvfile, delimiter="\t")
+                for line in pdf_data:
+                    writer.writerow(line)
+
+# ----- Plots pmf vs mole fraction for each gas/MOF array combination -----
+# Keyword arguments:
+#     gases -- list of gases specified by user
+#     list_of_arrays -- list of all array combinations
+#     bins -- dictionary result from create_bins
+#     binned_probabilities -- list of dictionaries, mof array, gas, pmfs
+def plot_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities):
+
+    # Make directory to store figures
+    timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
+    os.makedirs("figures/%s" % timestamp)
+
+    # Assign numbers to each array for shorthand notation
+    array_id_key = []
+    array_id_dict = {}
+    i = 0
+    num_elements = 0
+    for array in list_of_arrays:
+        if num_elements == len(array):
+            i += 1
+            num_elements = num_elements
+        else:
+            i = 1
+            num_elements = len(array)
+        array_id = str(num_elements)+'-'+str(i)
+        array_name = '%s' % ' '.join(array)
+        array_id_key.append([array_id, array_name])
+        array_id_dict.update({array_name: array_id})
+
+    filename = 'figures/%s/array_id_list.csv' % (timestamp)
+    with open(filename,'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter="\t")
+        for key, val in array_id_dict.items():
+            writer.writerow([key, val])
+
+    # Generate the plots
+    array_names = ['%s' % ' '.join(array) for array in list_of_arrays]
+    for gas in gases:
+        for array in array_names:
+            # X-axis, list of mole fracs to plot, for relevant gas
+            comps_to_plot = [bin[gas] for bin in bins][0:len(bins)-1]
+            # Y-axis, list of pmf values to plot
+            pmfs_to_plot = [row[array] for row in binned_probabilities if '%s bin' % gas in row.keys()]
+            pdfs_to_plot = len(comps_to_plot) * np.array(pmfs_to_plot)
+            # Plot and save figure in a directory 'figures'
+            plot_PMF = plt.figure()
+            plt.rc('xtick', labelsize=20)
+            plt.rc('ytick', labelsize=20)
+            plt.plot(comps_to_plot, pdfs_to_plot, 'ro')
+            plt.title('Array: %s, Gas: %s' % (array, gas))
+            if len(array) <= 40:
+                plt.savefig("figures/%s/%s_%s.png" % (timestamp, array, str(gas)))
+            else:
+                plt.savefig("figures/%s/%s_%s.png" % (timestamp, 'Array #'+array_id_dict[array]+' (See Key)', str(gas)))
+            plt.close(plot_PMF)
