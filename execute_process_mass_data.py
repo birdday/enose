@@ -98,7 +98,7 @@ for mof in mof_list:
 # ----- Choose what to save ------------------------
 # --------------------------------------------------
 element_pmf_results_df = pd.DataFrame(data=element_pmf_results)
-save_element_pmf_data(element_pmf_results_df, stdev, mrange)
+# save_element_pmf_data(element_pmf_results_df, stdev, mrange)
 save_unbinned_array_pmf_data(gases, list_of_arrays, all_array_pmf_results)
 save_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities_sum)
 # plot_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities_sum)

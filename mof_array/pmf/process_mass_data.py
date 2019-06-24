@@ -503,20 +503,31 @@ def save_unbinned_array_pmf_data(gases, list_of_arrays, all_array_pmf_results):
             writer.writerow([key, val])
 
     # Generate array data and write to file
+    header = []
+    for gas in gases:
+        header.extend([str(gas)])
+    header.extend(['PMF'])
+
     comps_to_save = []
+    comps_to_save_alt =[]
     for row in all_array_pmf_results:
         comps_to_save.append([{'%s' % gas: row[gas]} for gas in gases])
+        comps_to_save_alt.append(np.transpose([row[gas] for gas in gases]))
     for array in list_of_arrays:
         array_name = '%s' % ' '.join(array)
         pmfs_to_save = [{'PMF': row[array_name]} for row in all_array_pmf_results]
+        pmfs_to_save_alt = [[row[array_name]] for row in all_array_pmf_results]
         if len(array_name) <= 40:
             filename = "saved_array_pmfs_unbinned/%s/%s.csv" % (timestamp, array_name)
         else:
             filename = "saved_array_pmfs_unbinned/%s/%s.csv" % (timestamp, str(array_id_dict[array_name]))
         pmf_data = np.column_stack((comps_to_save, pmfs_to_save))
-        with open(filename,'w', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter="\t")
-            for line in pmf_data:
+        # Using Alt form of data
+        pmf_data_alt = np.column_stack((comps_to_save_alt, pmfs_to_save_alt))
+        with open(filename, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile,delimiter='\t')
+            writer.writerow(header)
+            for line in pmf_data_alt:
                 writer.writerow(line)
 
 # ----- Saves pmf and mole fraction data for each gas/MOF array combination -----
