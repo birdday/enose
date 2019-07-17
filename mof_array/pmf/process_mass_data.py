@@ -1,4 +1,4 @@
-'''
+"""
 Original Code by: Jenna Gustafson
 Modifications by: Brian Day
 
@@ -44,7 +44,7 @@ the same keyword whenever the argument was the same for clarity.
     array_kld_results -- list of dictionaries including, MOF array, gas, and corresponding KLD
   Miscellaneous:
     comps -- list of all simulated gas compositions
-'''
+"""
 
 # --------------------------------------------------
 # ----- Import Python Packages ---------------------
@@ -79,6 +79,7 @@ def read_data_as_dict(filename):
         output_data = csv.DictReader(csvfile, delimiter="\t")
         return list(output_data)
 
+
 def write_data_as_tabcsv(filename, data):
     with open(filename,'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter="\t")
@@ -86,22 +87,26 @@ def write_data_as_tabcsv(filename, data):
             writer.writerow([line])
     return(writer)
 
+
 def yaml_loader(filepath):
     with open(filepath, 'r') as yaml_file:
         data = yaml.load(yaml_file)
     return(data)
 
-# ----- Convert simulated/experimental data into dictionary format -----
-# Also calculates masses in terms of mg/(cm^3 of framework)
-# Keyword arguments:
-#     exp_results_import -- dictionary formatted experimental results
-#     sim_results_import -- dictionary formatted simulated results
-#     mof_list -- list of MOF structures simulated
-#     mof_densities -- dictionary of densities
-#     gases -- list of gases in simulated mixtures
+
 def import_experimental_data(exp_results_import, mof_list, mof_densities, gases):
-    # Can probibily omit exp_results_mass in the future and just use the full
-    # dictionary for furthere analysis.
+    """
+    ----- Convert simulated/experimental data into dictionary format -----
+    Also calculates masses in terms of mg/(cm^3 of framework)
+    Keyword arguments:
+        exp_results_import -- dictionary formatted experimental results
+        sim_results_import -- dictionary formatted simulated results
+        mof_list -- list of MOF structures simulated
+        mof_densities -- dictionary of densities
+        gases -- list of gases in simulated mixtures
+    Can probibily omit exp_results_mass in the future and just use the full
+    dictionary for further analysis.
+    """
     exp_results_full = []
     exp_results_mass = []
     exp_mof_list = []
@@ -118,6 +123,7 @@ def import_experimental_data(exp_results_import, mof_list, mof_densities, gases)
                 None
     return(exp_results_full, exp_results_mass, exp_mof_list)
 
+
 def import_simulated_data(sim_results_import, mof_list, mof_densities, gases):
     sim_results_full = []
     for mof in mof_list:
@@ -129,15 +135,18 @@ def import_simulated_data(sim_results_import, mof_list, mof_densities, gases):
                 sim_results_full.extend([sim_results_temp])
     return(sim_results_full)
 
-# ----- Interpolate between simulated data points -----
-# ===== NOT FUNCTIONAL AT THE MOMENT =====
-# Adds gas mixtures to the original data, between min and max of original mole fractions, as the
-# code only predicts simulated mixtues. Interpolation can improve accuracy of prediciton.
-# Currently designed for ternary mixtures. Change later if needed.
-# Keyword arguments:
-#     comps -- all simulated gas compositions
-#     num_mixtures -- specify integer number of mixtures to add
+
 def add_random_gas(gases, comps, num_mixtures):
+    """
+    ----- Interpolate between simulated data points -----
+    ===== NOT FUNCTIONAL AT THE MOMENT =====
+    Adds gas mixtures to the original data, between min and max of original mole fractions, as the
+    code only predicts simulated mixtues. Interpolation can improve accuracy of prediciton.
+    Currently designed for ternary mixtures. Change later if needed.
+    Keyword arguments:
+        comps -- all simulated gas compositions
+        num_mixtures -- specify integer number of mixtures to add
+    """
     d0_range = [min(comps[:,0]), max(comps[:,0])]
     d1_range = [min(comps[:,1]), max(comps[:,1])]
     d2_range = [min(comps[:,2]), max(comps[:,2])]
@@ -147,26 +156,28 @@ def add_random_gas(gases, comps, num_mixtures):
             comps.append(random_gas)
             masses.extend(predicted_mass)
 
-# ----- Calculates probability mass function (PMF) of each data point -----
-# Keyword arguments:
-#     exp_results_full -- dictionary formatted experimental results (with new mass units)
-#     sim_results_full -- dictionary formatted experimental results (with new mass units)
-#     mof_list -- names of all MOFs
-#     stdev -- standard deviation for the normal distribution
-#     mrange -- range for which the difference between cdfs is calculated
-# ----------
-# Formula for the probability of x in the trunacted PDF over range [a,b] is:
-#                           Norm_PDF(mean,var,x)
-# Trunc_PDF(x) = -------------------------------------------
-#                Norm_CDF(mean,var,b) - Norm_CDF(mean,var,a)
-# Can be calculated directly in python with:
-#   Trunc_PDF(x) = ss.truncnorm.pdf(x, alpha, beta, loc=mu, scale=sigma)
-# Jenna's approach is probably better. She calculates the probaility that that
-# the real mass falls in a small range around the measured mass. Examine the
-# difference between these two approaches in more detail, along with the effects
-# of the employed error function parameters.
-def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange):
 
+def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange):
+    """
+    ----- Calculates probability mass function (PMF) of each data point -----
+    Keyword arguments:
+        exp_results_full -- dictionary formatted experimental results (with new mass units)
+        sim_results_full -- dictionary formatted experimental results (with new mass units)
+        mof_list -- names of all MOFs
+        stdev -- standard deviation for the normal distribution
+        mrange -- range for which the difference between cdfs is calculated
+    ----------
+    Formula for the probability of x in the trunacted PDF over range [a,b] is:
+                              Norm_PDF(mean,var,x)
+    Trunc_PDF(x) = -------------------------------------------
+                   Norm_CDF(mean,var,b) - Norm_CDF(mean,var,a)
+    Can be calculated directly in python with:
+      Trunc_PDF(x) = ss.truncnorm.pdf(x, alpha, beta, loc=mu, scale=sigma)
+    Jenna's approach is probably better. She calculates the probaility that that
+    the real mass falls in a small range around the measured mass. Examine the
+    difference between these two approaches in more detail, along with the effects
+    of the employed error function parameters.
+    """
     element_pmf_results = []
     for mof in mof_list:
         # Isolate the simulated results for the mof
@@ -221,12 +232,14 @@ def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, m
     return(element_pmf_results)
 
 
-# ----- Combines and normalizes mof pmfs for a single array -----
-# Function is used in function 'calculate_all_arrays' below
-# Keyword arguments:
-#     mof_array -- list of mofs in a single array
-#     element_pmf_results -- list of dictionaries including mof, mixture, probability
 def calculate_array_pmf(mof_array, element_pmf_results):
+    """
+    ----- Combines and normalizes mof pmfs for a single array -----
+    Function is used in function 'calculate_all_arrays' below
+    Keyword arguments:
+        mof_array -- list of mofs in a single array
+        element_pmf_results -- list of dictionaries including mof, mixture, probability
+    """
     compound_pmfs = None
     for mof in mof_array:
         mof_pmf = [ row['PMF_Range'] for row in element_pmf_results if row['MOF'] == mof ]
@@ -238,15 +251,18 @@ def calculate_array_pmf(mof_array, element_pmf_results):
     single_array_pmf_results = [ i / norm_factor for i in compound_pmfs ]
     return(single_array_pmf_results)
 
-# ----- Calculates all possible arrays and corresponding pmfs ----
-# Sets up all combinations of MOF arrays, uses function 'calculate_array_pmf'
-# to get pmf values for every array/gas/experiment combination
-# Keyword arguments:
-#     mof_list -- list of all mofs
-#     num_mofs -- lower and upper limit of desired number of mofs in array
-#     element_pmf_results -- list of dictionaries including mof, mixture, probability
-#     gases -- list of gases
+
 def calculate_all_arrays(mof_list, num_mofs, element_pmf_results, gases):
+    """
+    ----- Calculates all possible arrays and corresponding pmfs ----
+    Sets up all combinations of MOF arrays, uses function 'calculate_array_pmf'
+    to get pmf values for every array/gas/experiment combination
+    Keyword arguments:
+        mof_list -- list of all mofs
+        num_mofs -- lower and upper limit of desired number of mofs in array
+        element_pmf_results -- list of dictionaries including mof, mixture, probability
+        gases -- list of gases
+    """
 
     # Creates list of MOF arrays, all combinations from min to max number of MOFs
     mof_array_list = []
@@ -276,13 +292,16 @@ def calculate_all_arrays(mof_list, num_mofs, element_pmf_results, gases):
 
     return(mof_array_list, all_array_pmf_results)
 
-# ----- Creates bins for all gases -----
-# Keyword arguments:
-#     gases -- list of present gases
-#     num_bins -- number of bins specified by user in config file
-#     mof_list -- list of mofs used in analysis
-#     element_pmf_results -- list of dictionaries including mof, mixture, probability
+
 def create_bins(gases, num_bins, mof_list, element_pmf_results):
+    """
+    ----- Creates bins for all gases -----
+    Keyword arguments:
+        gases -- list of present gases
+        num_bins -- number of bins specified by user in config file
+        mof_list -- list of mofs used in analysis
+        element_pmf_results -- list of dictionaries including mof, mixture, probability
+    """
 
     # Save list of dictionaries for first MOF to use as a list of all gas mole fractions
     # Might be good to make this it's own function early on for easier access to list of comps
@@ -318,18 +337,22 @@ def create_bins(gases, num_bins, mof_list, element_pmf_results):
 
     return(bins)
 
-# ----- Sorts pmfs into bins created by create_bins function -----
-# The goal of this fucntion is to take the pmfs over the whole composition space
-# and determine the probability vs. composition for one single gas, independent
-# of the other componentns and their compositions.
-# The current approach might be flawed in that it can skew the net probability
-# based on the number of points in a bin. Revisit this in the near future.
-# Keyword arguments:
-#     gases -- list of gases specified as user input
-#     list_of_arrays -- list of all array combinations
-#     bins -- dictionary containing bins for each gas
-#     all_array_pmf_results -- list of dictionaries, arrays, joint pmfs
+
 def bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results):
+    """
+    ----- Sorts pmfs into bins created by create_bins function -----
+    The goal of this fucntion is to take the pmfs over the whole composition space
+    and determine the probability vs. composition for one single gas, independent
+    of the other componentns and their compositions.
+    The current approach might be flawed in that it can skew the net probability
+    based on the number of points in a bin. Revisit this in the near future.
+    Keyword arguments:
+        gases -- list of gases specified as user input
+        list_of_arrays -- list of all array combinations
+        bins -- dictionary containing bins for each gas
+        all_array_pmf_results -- list of dictionaries, arrays, joint pmfs
+    """
+
     binned_probabilities_sum = []
     binned_probabilities_max = []
     for gas in gases:
@@ -377,13 +400,17 @@ def bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results):
 
     return(binned_probabilities_sum, binned_probabilities_max)
 
-# ----- Calculates the Kullback-Liebler Divergence of a MOF array with each gas component -----
-# Keyword arguments:
-#     gases -- list of gases specified by user
-#     list_of_arrays -- list of all array combinations
-#     bins -- dictionary result from create_bins
-#     binned_probabilities -- list of dictionaries, mof array, gas, pmfs
+
 def calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_probabilities):
+    """
+    ----- Calculates the Kullback-Liebler Divergence of a MOF array with each gas component -----
+    Keyword arguments:
+        gases -- list of gases specified by user
+        list_of_arrays -- list of all array combinations
+        bins -- dictionary result from create_bins
+        binned_probabilities -- list of dictionaries, mof array, gas, pmfs
+    """
+
     array_kld_results = []
     for array in list_of_arrays:
         dict_temp = {'MOF_Array' : array}
@@ -410,13 +437,17 @@ def calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_pro
 
     return(array_kld_results)
 
-# ----- Rank MOF arrays by KLD -----
-# Keyword arguments:
-#     gases -- list of gases
-#     num_mofs -- minimum and maximum number of mofs in an array, usr specified in config file
-#     num_best_worst - number of the best and worst mofs of eash array size to save
-#     array_kld_results -- list of dictionaries including, mof array, gas, and corresponding kld
+
 def choose_arrays(gases, num_mofs, array_kld_results, num_best_worst):
+    """
+    ----- Rank MOF arrays by KLD -----
+    Keyword arguments:
+        gases -- list of gases
+        num_mofs -- minimum and maximum number of mofs in an array, usr specified in config file
+        num_best_worst - number of the best and worst mofs of eash array size to save
+        array_kld_results -- list of dictionaries including, mof array, gas, and corresponding kld
+    """
+
     # Saves best and worst arrays of each array size, ranking by absolute KLD
     best_ranked_by_abskld = sorted(array_kld_results, key=lambda k: k['Absolute_KLD'], reverse=True)
     worst_ranked_by_abskld = sorted(array_kld_results, key=lambda k: k['Absolute_KLD'])
@@ -459,21 +490,28 @@ def choose_arrays(gases, num_mofs, array_kld_results, num_best_worst):
 
     return(best_and_worst_arrays_by_absKLD, best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD)
 
-# ----- Saves pmf and mole fraction data for each gas/MOF combination -----
-# Keyword arguments:
-#     element_pmf_results -- list of dictionaries with all pmf values
+
 def save_element_pmf_data(element_pmf_results, stdev, mrange):
+    """
+    ----- Saves pmf and mole fraction data for each gas/MOF combination -----
+    Keyword arguments:
+        element_pmf_results -- list of dictionaries with all pmf values
+    """
+
     timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
     data_frame = pd.DataFrame(element_pmf_results)
     data_frame.to_csv('saved_element_pmfs/%s_stdev_%s_mrange_%s.csv' % (stdev, mrange, timestamp), sep='\t')
 
-# ----- Saves pmf and mole fraction data for each gas/MOF array combination -----
-# Keyword arguments:
-#     gases -- list of gases specified by user
-#     list_of_arrays -- list of all arrays, and MOFs in each array
-#     bins -- dictionary result from create_bins
-#     binned_probabilities -- list of dictionaries, mof array, gas, pmfs
+
 def save_unbinned_array_pmf_data(gases, list_of_arrays, all_array_pmf_results):
+    """
+    ----- Saves pmf and mole fraction data for each gas/MOF array combination -----
+    Keyword arguments:
+        gases -- list of gases specified by user
+        list_of_arrays -- list of all arrays, and MOFs in each array
+        bins -- dictionary result from create_bins
+        binned_probabilities -- list of dictionaries, mof array, gas, pmfs
+    """
 
     # Make directory to store pmf data
     timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
@@ -530,13 +568,16 @@ def save_unbinned_array_pmf_data(gases, list_of_arrays, all_array_pmf_results):
             for line in pmf_data_alt:
                 writer.writerow(line)
 
-# ----- Saves pmf and mole fraction data for each gas/MOF array combination -----
-# Keyword arguments:
-#     gases -- list of gases specified by user
-#     list_of_arrays -- list of all arrays, and MOFs in each array
-#     bins -- dictionary result from create_bins
-#     binned_probabilities -- list of dictionaries, mof array, gas, pmfs
+
 def save_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities):
+    """
+    ----- Saves pmf and mole fraction data for each gas/MOF array combination -----
+    Keyword arguments:
+        gases -- list of gases specified by user
+        list_of_arrays -- list of all arrays, and MOFs in each array
+        bins -- dictionary result from create_bins
+        binned_probabilities -- list of dictionaries, mof array, gas, pmfs
+    """
 
     # Make directory to store pmf data
     timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
@@ -582,13 +623,16 @@ def save_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities
                 for line in pdf_data:
                     writer.writerow(line)
 
-# ----- Plots pmf vs mole fraction for each gas/MOF array combination -----
-# Keyword arguments:
-#     gases -- list of gases specified by user
-#     list_of_arrays -- list of all array combinations
-#     bins -- dictionary result from create_bins
-#     binned_probabilities -- list of dictionaries, mof array, gas, pmfs
+
 def plot_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities):
+    """
+    ----- Plots pmf vs mole fraction for each gas/MOF array combination -----
+    Keyword arguments:
+        gases -- list of gases specified by user
+        list_of_arrays -- list of all array combinations
+        bins -- dictionary result from create_bins
+        binned_probabilities -- list of dictionaries, mof array, gas, pmfs
+    """
 
     # Make directory to store figures
     timestamp = datetime.now().strftime('%Y_%m_%d__%H_%M_%S')
