@@ -129,15 +129,19 @@ def import_simulated_data(sim_results_import, mof_list, mof_densities, gases):
                 sim_results_full.extend([sim_results_temp])
     return(sim_results_full)
 
-def add_random_gas(comps, num_mixtures):
-    """ Adds random gas mixtures to the original data, between min and max of original mole fractions
-
-    Keyword arguments:
-    comps -- all simulated gas compositions
-    num_mixtures -- specify integer number of mixtures to add
-    """
+# ----- Interpolate between simulated data points -----
+# ===== NOT FUNCTIONAL AT THE MOMENT =====
+# Adds gas mixtures to the original data, between min and max of original mole fractions, as the
+# code only predicts simulated mixtues. Interpolation can improve accuracy of prediciton.
+# Currently designed for ternary mixtures. Change later if needed.
+# Keyword arguments:
+#     comps -- all simulated gas compositions
+#     num_mixtures -- specify integer number of mixtures to add
+def add_random_gas(gases, comps, num_mixtures):
+    d0_range = [min(comps[:,0]), max(comps[:,0])]
+    d1_range = [min(comps[:,1]), max(comps[:,1])]
+    d2_range = [min(comps[:,2]), max(comps[:,2])]
     while (len(comps) < 78 + num_mixtures):
-        random_gas = ([0.5 * round(random(), 3), 0.5 * round(random(), 3), 0.2 * round(random(), 3)])
         predicted_mass = interp_dat(random_gas)
         if sum(random_gas) <= 1 and not isnan(predicted_mass):
             comps.append(random_gas)
