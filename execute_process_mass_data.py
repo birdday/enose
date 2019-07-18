@@ -73,7 +73,6 @@ for mof in mof_list:
     mof_densities.copy()
     mof_densities.update({ mof : data['mofs'][mof]['density']})
 
-ordered_by_kld_product, ordered_by_gas, all_arrays_ranked = choose_best_arrays(gases, number_mofs, kl_divergence)
 # --------------------------------------------------
 # ----- Calculate arrays, PMFs, KLDs, etc. ---------
 # --------------------------------------------------
@@ -92,6 +91,8 @@ ordered_by_kld_product, ordered_by_gas, all_arrays_ranked = choose_best_arrays(g
     bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results) )
 (array_kld_results) = (
     calculate_kld(gases, list_of_arrays, bins, binned_probabilities_sum) )
+(best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD, all_ranked_by_jointKLD) = (
+    choose_arrays(gases, num_mofs, array_kld_results, num_best_worst) )
 
 pmf_results_df = pd.DataFrame(data=array_pmf_results)
 save_raw_pmf_data(pmf_results_df, stdev, mrange, min(number_mofs))
