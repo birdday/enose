@@ -73,7 +73,6 @@ for mof in mof_list:
     mof_densities.copy()
     mof_densities.update({ mof : data['mofs'][mof]['density']})
 
-bin_compositions_results = bin_compositions(gases, list_of_arrays, create_bins_results, array_pmf_results, experimental_mass_mofs)
 kl_divergence = information_gain(gases, list_of_arrays, bin_compositions_results, create_bins_results)
 ordered_by_kld_product, ordered_by_gas, all_arrays_ranked = choose_best_arrays(gases, number_mofs, kl_divergence)
 (exp_results_full, exp_results_mass, exp_mof_list) = (
@@ -86,6 +85,8 @@ ordered_by_kld_product, ordered_by_gas, all_arrays_ranked = choose_best_arrays(g
     calculate_all_arrays(mof_list, num_mofs, element_pmf_results, gases) )
 (bins) = (
     create_bins(gases, num_bins, mof_list, element_pmf_results) )
+(binned_probabilities_sum, binned_probabilities_max) = (
+    bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results) )
 
 pmf_results_df = pd.DataFrame(data=array_pmf_results)
 save_raw_pmf_data(pmf_results_df, stdev, mrange, min(number_mofs))

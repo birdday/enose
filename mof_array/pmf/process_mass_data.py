@@ -318,55 +318,64 @@ def create_bins(gases, num_bins, mof_list, element_pmf_results):
 
     return(bins)
 
-def bin_compositions(gases, list_of_arrays, create_bins_results, array_pmf_results, experimental_mass_mofs):
-    """Sorts pmfs into bins created by create_bins function.
-
-    Keyword arguments:
-    gases -- list of gases specified as user input
-    list_of_arrays -- list of all array combinations
-    create_bins_results -- dictionary containing bins for each gas
-    array_pmf_results -- list of dictionaries, arrays, joint pmfs
-    experimental_mass_mofs -- ordered list of dictionaries with each experimental mof/mass
-    """
-
-    binned_probability = []
-    for gas_name in gases:
+# ----- Sorts pmfs into bins created by create_bins function -----
+# The goal of this fucntion is to take the pmfs over the whole composition space
+# and determine the probability vs. composition for one single gas, independent
+# of the other componentns and their compositions.
+# The current approach might be flawed in that it can skew the net probability
+# based on the number of points in a bin. Revisit this in the near future.
+# Keyword arguments:
+#     gases -- list of gases specified as user input
+#     list_of_arrays -- list of all array combinations
+#     bins -- dictionary containing bins for each gas
+#     all_array_pmf_results -- list of dictionaries, arrays, joint pmfs
+def bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results):
+    binned_probabilities_sum = []
+    binned_probabilities_max = []
+    for gas in gases:
         # Assigns pmf to bin value (dictionary) by checking whether mole frac is
         # between the current and next bin value.
-        for row in array_pmf_results:
-             for i in range(1, len(create_bins_results)):
-                if ( float(row[gas_name]) >= create_bins_results[i - 1][gas_name] and
-                     float(row[gas_name]) < create_bins_results[i][gas_name]
-                   ):
-                    row.update({'%s bin' % gas_name: create_bins_results[i - 1][gas_name]})
+        # Current method likely inefficient, but it works. Can revisit later.
+        for row in all_array_pmf_results:
+             for i in range(1, len(bins)):
+                 lower_bin = bins[i-1][gas]
+                 upper_bin = bins[i][gas]
+                 gas_comp = float(row[gas])
+                 if gas_comp >= lower_bin and gas_comp < upper_bin:
+                     row.update({'%s bin' % gas: lower_bin})
 
         # Loops through all of the bins and takes sum over all pmfs in that bin.
-        binned_probability_temporary = []
-        for b in create_bins_results[0:len(create_bins_results)-1]:
-            temp_array_pmf = {'%s' % ' '.join(array): [] for array in list_of_arrays}
-            for line in array_pmf_results:
-                # Checks that the gas' mole frac matches the current bin
-                if b[gas_name] == line['%s bin' % gas_name]:
-                    # For each array, assigns the pmfs to their corresponding key
-                    for array in list_of_arrays:
-                        temp_pmf_list = temp_array_pmf['%s' % ' '.join(array)]
-                        temp_pmf_list.append(line['%s' % ' '.join(array)])
-                        temp_array_pmf['%s' % ' '.join(array)] = temp_pmf_list
+        all_bins_temp_sum = []
+        all_bins_temp_max = []
+        array_names = ['%s' % ' '.join(array) for array in list_of_arrays]
+        for bin in bins[0:len(bins)-1]:
+            array_pmfs_temp = {array: [] for array in array_names}
+            for row in all_array_pmf_results:
+                if bin[gas] == row['%s bin' % gas]:
+                    for array in array_names:
+                        array_pmfs_temp[array].append(row[array])
 
-            # Updates pmfs for each array for current bin, summing over all pmfs
-            bin_temporary = {'%s bin' % gas_name : b[gas_name]}
-            for array in list_of_arrays:
-                if temp_array_pmf['%s' % ' '.join(array)] == []:
-                    bin_temporary.update({'%s' % ' '.join(array): 0})
+            # Updates pmfs for each array for current bin
+            # Many methods here of handling multiple data points.
+            # Currently, can sum all pmfs, or take the max value.
+            single_bin_temp = {'%s bin' % gas : bin[gas]}
+            with_sum = copy.deepcopy(single_bin_temp)
+            with_max = copy.deepcopy(single_bin_temp)
+            for array in array_names:
+                if array_pmfs_temp[array] == []:
+                    with_sum.update({array : 0})
+                    with_max.update({array : 0})
                 else:
-                    bin_temporary.update({'%s' % ' '.join(array) : sum(temp_array_pmf['%s' % ' '.join(array)])})
-
-            binned_probability_temporary.append(bin_temporary)
+                    with_sum.update({array : sum(array_pmfs_temp[array])})
+                    with_max.update({array : max(array_pmfs_temp[array])})
+            all_bins_temp_sum.append(with_sum)
+            all_bins_temp_max.append(with_max)
 
         # Creates list of binned probabilities, already normalized
-        binned_probability.extend(binned_probability_temporary)
+        binned_probabilities_sum.extend(all_bins_temp_sum)
+        binned_probabilities_max.extend(all_bins_temp_max)
 
-    return(binned_probability)
+    return(binned_probabilities_sum, binned_probabilities_max)
 
 # ----- Plots pmf vs mole fraction for each gas/MOF array combination -----
 # Keyword arguments:
