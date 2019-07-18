@@ -490,38 +490,25 @@ def save_element_pmf_data(element_pmf_results, stdev, mrange):
     data_frame = pd.DataFrame(element_pmf_results)
     data_frame.to_csv('saved_element_pmfs/%s_stdev_%s_mrange_%s.csv' % (stdev, mrange, timestamp), sep='\t')
 
-    Keyword arguments:
-    gas_names -- list of gases specified by user
-    list_of_arrays -- list of all array combinations
-    bin_compositions_results -- list of dictionaries, mof array, gas, pmfs
-    create_bins_results -- dictionary result from create_bins
-    """
-    array_gas_info_gain = []
-    reference_prob = 1/len(create_bins_results)
-
-    # For each array, take list of dictionaries with results
+# ----- Calculates the Kullback-Liebler Divergence of a MOF array with each gas component -----
+# Keyword arguments:
+#     gases -- list of gases specified by user
+#     list_of_arrays -- list of all array combinations
+#     bins -- dictionary result from create_bins
+#     binned_probabilities -- list of dictionaries, mof array, gas, pmfs
+def calculate_kld(gases, list_of_arrays, bins, binned_probabilities):
+    array_kld_results = []
+    reference_prob = 1/len(bins)
     for array in list_of_arrays:
-        array_gas_temp = {'mof array' : array}
-        for gas in gas_names:
-                pmfs_per_array = [row['%s' % ' '.join(array)] for row in bin_compositions_results if '%s bin' % gas in row.keys()]
-                # For each array/gas combination, calculate the kld
-                kl_divergence = sum([float(pmf)*log(float(pmf)/reference_prob,2) for pmf in pmfs_per_array if pmf != 0])
-                # Result is list of dicts, dropping the pmf values
-                array_gas_temp.update({'%s KLD' % gas : round(kl_divergence,4)})
-        array_gas_info_gain.append(array_gas_temp)
+        dict_temp = {'MOF_Array' : array}
+        array_name = '%s' % ' '.join(array)
+        for gas in gases:
+                pmfs_per_array = [row[array_name] for row in binned_probabilities if '%s bin' % gas in row.keys()]
+                kld = sum([float(pmf)*log(float(pmf)/reference_prob,2) for pmf in pmfs_per_array if pmf != 0])
+                dict_temp.update({'%s KLD' % gas : round(kld,4)})
+        array_kld_results.append(dict_temp)
+    return(array_kld_results)
 
-    return(array_gas_info_gain)
-
-def choose_best_arrays(gas_names, number_mofs, information_gain_results):
-    """Choose the best MOF arrays by selecting the top KL scores for each gas
-
-    Keyword arguments:
-    gas_names -- list of gases
-    number_mofs -- minimum and maximum number of mofs in an array, usr specified in config file
-    information_gain_results -- list of dictionaries including, mof array, gas, and corresponding kld
-    """
-    # Combine KLD values for each array,taking the product over all gases
-    # for mixtures having more than two components
     ranked_by_product = []
     if len(gas_names) > 2:
         for each_array in information_gain_results:
