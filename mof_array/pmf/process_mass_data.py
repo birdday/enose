@@ -399,25 +399,49 @@ def plot_binned_pmf_array(gases, list_of_arrays, bins, binned_probabilities):
                 plt.savefig("figures/%s/%s_%s.png" % (timestamp, 'Array #'+array_id_dict[array]+' (See Key)', str(gas)))
             plt.close(plot_PMF)
 
-def save_array_pmf_data(gas_names, list_of_arrays, create_bins_results, bin_compositions_results):
-    """Saves pmf and mole fraction data for each gas/MOF array combination
+# ----- Saves pmf and mole fraction data for each gas/MOF array combination -----
+# Keyword arguments:
+#     gases -- list of gases specified by user
+#     list_of_arrays -- list of all arrays, and MOFs in each array
+#     bins -- dictionary result from create_bins
+#     binned_probabilities -- list of dictionaries, mof array, gas, pmfs
+def save_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities):
 
-    Keyword arguments:
-    gas_names -- list of gases specified by user
-    mof_names -- list of MOFs in array, specified by user
-    create_bins_results -- dictionary result from create_bins
-    bin_compositions_results -- list of dictionaries, mof array, gas, pmfs
-    """
-    data_directory = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
-    os.makedirs("saved_data/%s" % data_directory)
-    for gas in gas_names:
-        comps_to_save = [b[gas] for b in create_bins_results][:len(create_bins_results)-1]
+    # Make directory to store pmf data
+    timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
+    os.makedirs("saved_array_pmfs/%s" % timestamp)
+
+    # Assign numbers to each array for shorthand notation
+    array_id_key = []
+    array_id_dict = {}
+    i = 0
+    num_elements = 0
+    for array in list_of_arrays:
+        if num_elements == len(array):
+            i += 1
+            num_elements = num_elements
+        else:
+            i = 1
+            num_elements = len(array)
+        array_id = str(num_elements)+'-'+str(i)
+        array_name = '%s' % ' '.join(array)
+        array_id_key.append([array_id, array_name])
+        array_id_dict.update({array_name: array_id})
+
+    filename = 'saved_array_pmfs/%s/array_id_list.csv' % (timestamp)
+    with open(filename,'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter="\t")
+        for key, val in array_id_dict.items():
+            writer.writerow([key, val])
+
+    # Generate array data and write to file
+    for gas in gases:
+        comps_to_save = [bin[gas] for bin in bins][0:len(bins)-1]
         for array in list_of_arrays:
-            # list of probability values to save
-            pmfs_to_save = [row['%s' % ' '.join(array)] for row in bin_compositions_results if '%s bin' % gas in row.keys()]
+            array_name = '%s' % ' '.join(array)
+            pmfs_to_save = [row[array_name] for row in binned_probabilities if '%s bin' % gas in row.keys()]
             pdfs_to_save = len(comps_to_save) * np.array(pmfs_to_save)
-
-            filename = "saved_data/%s/%s_%s.csv" % (data_directory, len(array), str(gas))
+            filename = "saved_array_pmfs/%s/%s_%s.csv" % (timestamp, str(array_id_dict[array_name]), str(gas))
             pdf_data = np.column_stack((comps_to_save, pdfs_to_save))
             with open(filename,'w', newline='') as csvfile:
                 writer = csv.writer(csvfile, delimiter="\t")
