@@ -220,23 +220,23 @@ def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, m
 
     return(element_pmf_results)
 
-def compound_probability(mof_array, calculate_pmf_results):
-    """Combines and normalizes pmfs for a mof array and gas combination, used in method 'array_pmf'
 
-    Keyword arguments:
-    mof_array -- list of mofs in array
-    calculate_pmf_results -- list of dictionaries including mof, mixture, probability
-    """
+# ----- Combines and normalizes mof pmfs for a single array -----
+# Function is used in function 'calculate_all_arrays' below
+# Keyword arguments:
+#     mof_array -- list of mofs in a single array
+#     element_pmf_results -- list of dictionaries including mof, mixture, probability
+def calculate_array_pmf(mof_array, element_pmf_results):
     compound_pmfs = None
     for mof in mof_array:
-        # Creates list of pmf values for a MOF
-        mof_pmf = [ row['PMF'] for row in calculate_pmf_results if row['MOF'] == mof ]
-
-        # Joint prob, multiply pmf values elementwise
+        mof_pmf = [ row['PMF_Range'] for row in element_pmf_results if row['MOF'] == mof ]
         if compound_pmfs is not None:
             compound_pmfs = [x*y for x,y in zip(compound_pmfs, mof_pmf)]
         else:
             compound_pmfs = mof_pmf
+    norm_factor = sum(compound_pmfs)
+    single_array_pmf_results = [ i / norm_factor for i in compound_pmfs ]
+    return(single_array_pmf_results)
 
     # Normalize joint probability, sum of all points is 1
     normalize_factor = sum(compound_pmfs)
