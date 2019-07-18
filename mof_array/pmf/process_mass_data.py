@@ -238,55 +238,43 @@ def calculate_array_pmf(mof_array, element_pmf_results):
     single_array_pmf_results = [ i / norm_factor for i in compound_pmfs ]
     return(single_array_pmf_results)
 
-    # Normalize joint probability, sum of all points is 1
-    normalize_factor = sum(compound_pmfs)
-    normalized_compound_pmfs = [ number / normalize_factor for number in compound_pmfs ]
-    return(normalized_compound_pmfs)
-
-def array_pmf(gas_names, number_mofs, mof_names, calculate_pmf_results, experimental_mass_mofs):
-    """Sets up all combinations of MOF arrays, uses function 'compound_probability' to get pmf values
-    for every array/gas/experiment combination
-
-    Keyword arguments:
-    gas_names -- list of gases
-    number_mofs -- lower and upper limit of desired number of mofs in array
-    mof_names -- list of all mofs
-    calculate_pmf_results -- list of dictionaries including mof, mixture, probability
-    experimental_mass_mofs -- ordered list of dictionaries with each experimental mof/mass
-    """
-    num_mofs = min(number_mofs)
-    mof_array_list = []
-    labeled_experimental_mass_mofs = []
-    experimental_mof_list = []
-    array_pmf = []
-
-    # save list of dictionaries for 1 MOF to have list of all gas mole fractions
-    array_temp_dict = [row for row in calculate_pmf_results if row['MOF'] == mof_names[0]]
+# ----- Calculates all possible arrays and corresponding pmfs ----
+# Sets up all combinations of MOF arrays, uses function 'calculate_array_pmf'
+# to get pmf values for every array/gas/experiment combination
+# Keyword arguments:
+#     mof_list -- list of all mofs
+#     num_mofs -- lower and upper limit of desired number of mofs in array
+#     element_pmf_results -- list of dictionaries including mof, mixture, probability
+#     gases -- list of gases
+def calculate_all_arrays(mof_list, num_mofs, element_pmf_results, gases):
 
     # Creates list of MOF arrays, all combinations from min to max number of MOFs
-    while num_mofs <= max(number_mofs):
-        mof_array_list.extend(list(combinations(mof_names, num_mofs)))
-        num_mofs += 1
+    mof_array_list = []
+    array_size = min(num_mofs)
+    while array_size <= max(num_mofs):
+        mof_array_list.extend(list(combinations(mof_list, array_size)))
+        array_size += 1
 
-    # Nested loops take all combinations of array/gas/experiment
-    count = 0
+    # Save list of dictionaries for first MOF for use as a list of all gas mole fractions
+    comp_set_dict = [row for row in element_pmf_results if row['MOF'] == mof_list[0]]
+
+    # Calculate and save the pmfs for each of the generated arrys
+    all_array_pmf_results = []
     for mof_array in mof_array_list:
-    # Calls outside function to calculate joint probability
-        normalized_compound_pmfs = compound_probability(mof_array, calculate_pmf_results)
-
+        single_array_pmf_results = calculate_array_pmf(mof_array, element_pmf_results)
         if mof_array == mof_array_list[0]:
-            # First array, set up dict with keys for each array and gas, specifying pmfs and comps
-            for index in range(len(array_temp_dict)):
-                array_dict = {'%s' % ' '.join(mof_array) : normalized_compound_pmfs[index]}
-                for gas in gas_names:
-                    array_dict.update({ '%s' % gas : float(array_temp_dict[index][gas])})
-                array_pmf.extend([array_dict])
+            # First Array: Set up dictionary with keys
+            for index in range(len(comp_set_dict)):
+                array_dict = {'%s' % ' '.join(mof_array) : single_array_pmf_results[index]}
+                for gas in gases:
+                    array_dict.update({ '%s' % gas : float(comp_set_dict[index][gas])})
+                all_array_pmf_results.extend([array_dict])
         else:
-            # Update dictionary with pmf list for each array
-            for index in range(len(array_temp_dict)):
-                array_pmf[index]['%s' % ' '.join(mof_array)] = normalized_compound_pmfs[index]
+            # Not First Array: Update Dictionary
+            for index in range(len(comp_set_dict)):
+                all_array_pmf_results[index]['%s' % ' '.join(mof_array)] = single_array_pmf_results[index]
 
-    return(array_pmf, mof_array_list)
+    return(mof_array_list, all_array_pmf_results)
 
 def create_bins(mofs_list, calculate_pmf_results, gases, num_bins):
     """Creates bins for all gases, ranging from the lowest to highest mole fractions for each.
