@@ -448,18 +448,13 @@ def save_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities):
                 for line in pdf_data:
                     writer.writerow(line)
 
-def save_raw_pmf_data(calculate_pmf_results, stdev, mrange, num_mofs):
-    """Saves pmf and mole fraction data for each gas/MOF array combination
-
-    Keyword arguments:
-    calculate_pmf_results -- list of dictionaries with all pmf values
-    """
-    csv_name = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
-    data_frame = pd.DataFrame(calculate_pmf_results)
-    data_frame.to_csv('saved_raw_pmfs/%s_mofs_%s_stdev_%s_mrange_%s.csv' % (num_mofs, stdev, mrange, csv_name), sep='\t')
-
-def information_gain(gas_names, list_of_arrays, bin_compositions_results, create_bins_results):
-    """Calculates the Kullback-Liebler Divergence of a MOF array with each gas component.
+# ----- Saves pmf and mole fraction data for each gas/MOF combination -----
+# Keyword arguments:
+#     element_pmf_results -- list of dictionaries with all pmf values
+def save_element_pmf_data(element_pmf_results, stdev, mrange):
+    timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
+    data_frame = pd.DataFrame(element_pmf_results)
+    data_frame.to_csv('saved_element_pmfs/%s_stdev_%s_mrange_%s.csv' % (stdev, mrange, timestamp), sep='\t')
 
     Keyword arguments:
     gas_names -- list of gases specified by user
