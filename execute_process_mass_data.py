@@ -55,23 +55,23 @@ exp_data = 'exp_data_175.csv'
 sim_results_import = read_data_as_dict(sim_data)
 exp_results_import = read_data_as_dict(exp_data)
 
+# Import yaml file as dictoncary
 filepath = 'settings/process_config.yaml'
 data = yaml_loader(filepath)
 
-mof_array = data['mof_array']
-mof_densities_import = {}
-mof_experimental_mass = {}
-
-for mof in mof_array:
-    mof_densities_import.copy()
-    mof_densities_import.update({ mof : data['mofs'][mof]['density']})
-
+# Redefine key varaibles in yaml file
+num_mofs = data['number_mofs']
 num_mixtures = data['num_mixtures']
+num_bins = data['num_bins']
+num_best_worst = data['num_best_worst']
 stdev = data['stdev']
 mrange = data['mrange']
 gases = data['gases']
-number_mofs = data['number_mofs']
-number_bins = data['number_bins']
+mof_list = data['mof_list']
+mof_densities = {}
+for mof in mof_list:
+    mof_densities.copy()
+    mof_densities.update({ mof : data['mofs'][mof]['density']})
 
 calculate_pmf_results = calculate_pmf(experimental_mass_results, import_data_results, experimental_mofs, stdev, mrange)
 array_pmf_results, list_of_arrays = array_pmf(gases, number_mofs, experimental_mofs, calculate_pmf_results, experimental_mass_mofs)
