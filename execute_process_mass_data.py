@@ -94,10 +94,14 @@ for mof in mof_list:
 (best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD, all_ranked_by_jointKLD) = (
     choose_arrays(gases, num_mofs, array_kld_results, num_best_worst) )
 
-pmf_results_df = pd.DataFrame(data=array_pmf_results)
-save_raw_pmf_data(pmf_results_df, stdev, mrange, min(number_mofs))
-plot_binned_pmf_array(gases, list_of_arrays, create_bins_results, bin_compositions_results)
-save_array_pmf_data(gases, list_of_arrays, create_bins_results, bin_compositions_results)
-write_output_data('saved_results/ordered_by_gas_%s.csv' % (datetime.now().strftime("%Y_%m_%d__%H_%M_%S")), ordered_by_gas)
-write_output_data('saved_results/ordered_by_kld_product_%s.csv' % (datetime.now().strftime("%Y_%m_%d__%H_%M_%S")), ordered_by_kld_product)
-write_output_data('saved_results/all_arrays_ranked_%s.csv' % (datetime.now().strftime("%Y_%m_%d__%H_%M_%S")), all_arrays_ranked)
+# --------------------------------------------------
+# ----- Choose what to save ------------------------
+# --------------------------------------------------
+element_pmf_results_df = pd.DataFrame(data=element_pmf_results)
+save_element_pmf_data(element_pmf_results_df, stdev, mrange)
+save_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities_sum)
+plot_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities_sum)
+timestamp = (datetime.now().strftime("%Y_%m_%d__%H_%M_%S"))
+write_data_as_tabcsv('saved_array_kld/best_and_worst_arrays_by_jointKLD_%s.csv' % timestamp, best_and_worst_arrays_by_jointKLD)
+write_data_as_tabcsv('saved_array_kld/best_and_worst_arrays_by_gasKLD_%s.csv' % timestamp, best_and_worst_arrays_by_gasKLD)
+write_data_as_tabcsv('saved_array_kld/all_ranked_by_jointKLD_%s.csv' % timestamp, all_ranked_by_jointKLD)

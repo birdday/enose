@@ -383,7 +383,7 @@ def bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results):
 #     list_of_arrays -- list of all array combinations
 #     bins -- dictionary result from create_bins
 #     binned_probabilities -- list of dictionaries, mof array, gas, pmfs
-def plot_binned_pmf_array(gases, list_of_arrays, bins, binned_probabilities):
+def plot_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities):
 
     # Make directory to store figures
     timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
@@ -439,7 +439,7 @@ def plot_binned_pmf_array(gases, list_of_arrays, bins, binned_probabilities):
 #     list_of_arrays -- list of all arrays, and MOFs in each array
 #     bins -- dictionary result from create_bins
 #     binned_probabilities -- list of dictionaries, mof array, gas, pmfs
-def save_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities):
+def save_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities):
 
     # Make directory to store pmf data
     timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
