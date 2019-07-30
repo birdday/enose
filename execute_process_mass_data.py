@@ -90,8 +90,8 @@ for mof in mof_list:
 (binned_probabilities_sum, binned_probabilities_max) = (
     bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results) )
 (array_kld_results) = (
-    calculate_kld(gases, list_of_arrays, bins, binned_probabilities_sum) )
-(best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD, all_ranked_by_jointKLD) = (
+    calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_probabilities_sum) )
+(best_and_worst_arrays_by_absKLD, best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD) = (
     choose_arrays(gases, num_mofs, array_kld_results, num_best_worst) )
 
 # --------------------------------------------------

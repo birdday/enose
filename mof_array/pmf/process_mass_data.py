@@ -383,17 +383,31 @@ def bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results):
 #     list_of_arrays -- list of all array combinations
 #     bins -- dictionary result from create_bins
 #     binned_probabilities -- list of dictionaries, mof array, gas, pmfs
-def calculate_kld(gases, list_of_arrays, bins, binned_probabilities):
+def calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_probabilities):
     array_kld_results = []
-    reference_prob = 1/len(bins)
     for array in list_of_arrays:
         dict_temp = {'MOF_Array' : array}
         array_name = '%s' % ' '.join(array)
+
+        # Calculate Aboslute KLD
+        pmfs_per_array_abs = [row[array_name] for row in all_array_pmf_results]
+        reference_prob_abs = 1/len(pmfs_per_array_abs)
+        abs_kld = sum([float(pmf)*log(float(pmf)/reference_prob_abs,2) for pmf in pmfs_per_array_abs if pmf != 0])
+        dict_temp.update({'Absolute_KLD' : round(abs_kld,4)})
+
+        # Calculate Component KLD
         for gas in gases:
-                pmfs_per_array = [row[array_name] for row in binned_probabilities if '%s bin' % gas in row.keys()]
-                kld = sum([float(pmf)*log(float(pmf)/reference_prob,2) for pmf in pmfs_per_array if pmf != 0])
-                dict_temp.update({'%s KLD' % gas : round(kld,4)})
+            reference_prob_comp = 1/len(bins)
+            pmfs_per_array_comp = [row[array_name] for row in binned_probabilities if '%s bin' % gas in row.keys()]
+            kld_comp = sum([float(pmf)*log(float(pmf)/reference_prob_comp,2) for pmf in pmfs_per_array_comp if pmf != 0])
+            dict_temp.update({'%s KLD' % gas : round(kld_comp,4)})
+
+        # Calculate Joint KLD
+        product_temp = reduce(operator.mul, [dict_temp['%s KLD' % gas] for gas in gases], 1)
+        dict_temp.update({'Joint_KLD' : product_temp})
+        dict_temp.update({'Array_Size' : len(dict_temp['MOF_Array'])})
         array_kld_results.append(dict_temp)
+
     return(array_kld_results)
 
 # ----- Rank MOF arrays by KLD -----
