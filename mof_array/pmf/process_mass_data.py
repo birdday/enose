@@ -417,28 +417,25 @@ def calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_pro
 #     num_best_worst - number of the best and worst mofs of eash array size to save
 #     array_kld_results -- list of dictionaries including, mof array, gas, and corresponding kld
 def choose_arrays(gases, num_mofs, array_kld_results, num_best_worst):
-    # N.B. Product refers to the cumulative KLD score, rather thn component-wise
-    ranked_by_product = []
-    for array in array_kld_results:
-        product_temp = reduce(operator.mul, [array['%s KLD' % gas] for gas in gases], 1)
-        ranked_by_product_temp = array.copy()
-        ranked_by_product_temp.update({'joint_KLD' : product_temp})
-        ranked_by_product_temp.update({'Array_Size' : len(array['MOF_Array'])})
-        ranked_by_product.extend([ranked_by_product_temp])
-
-    # Sort results from highest to lowest KLD values
-    best_ranked_by_product = sorted(ranked_by_product, key=lambda k: k['Array_Size'], reverse=True)
-    best_ranked_by_product = sorted(ranked_by_product, key=lambda k: k['joint_KLD'], reverse=True)
-
-    # Sort results from lowest to highest KLD values
-    worst_ranked_by_product = sorted(ranked_by_product, key=lambda k: k['Array_Size'])
-    worst_ranked_by_product = sorted(ranked_by_product, key=lambda k: k['joint_KLD'])
-
-    arrays_to_pick_from = [best_ranked_by_product, worst_ranked_by_product]
-    best_and_worst_arrays_by_jointKLD = []
+    # Saves best and worst arrays of each array size, ranking by absolute KLD
+    best_ranked_by_abskld = sorted(array_kld_results, key=lambda k: k['Absolute_KLD'], reverse=True)
+    worst_ranked_by_abskld = sorted(array_kld_results, key=lambda k: k['Absolute_KLD'])
+    array_list_abskld = [best_ranked_by_abskld, worst_ranked_by_abskld]
+    best_and_worst_arrays_by_absKLD = []
+    for ranked_list in array_list_abskld:
+        for array_size in range(min(num_mofs),max(num_mofs)+1):
+            index = 0
+            for array in ranked_list:
+                if index < num_best_worst and len(array['MOF_Array']) == array_size:
+                    best_and_worst_arrays_by_absKLD.append(array)
+                    index += 1
 
     # Saves best and worst arrays of each array size, ranking by joint KLD
-    for ranked_list in arrays_to_pick_from:
+    best_ranked_by_jointkld = sorted(array_kld_results, key=lambda k: k['Joint_KLD'], reverse=True)
+    worst_ranked_by_jointkld = sorted(array_kld_results, key=lambda k: k['Joint_KLD'])
+    array_list_jointkld = [best_ranked_by_jointkld, worst_ranked_by_jointkld]
+    best_and_worst_arrays_by_jointKLD = []
+    for ranked_list in array_list_jointkld:
         for array_size in range(min(num_mofs),max(num_mofs)+1):
             index = 0
             for array in ranked_list:
@@ -451,16 +448,16 @@ def choose_arrays(gases, num_mofs, array_kld_results, num_best_worst):
     for gas in gases:
         best_ranked_per_gas  = sorted(array_kld_results, key=lambda k: k['%s KLD' % gas], reverse=True)
         worst_ranked_per_gas = sorted(array_kld_results, key=lambda k: k['%s KLD' % gas])
-        arrays_to_pick_from = [best_ranked_per_gas, worst_ranked_per_gas]
+        array_list_gaskld = [best_ranked_per_gas, worst_ranked_per_gas]
         for array_size in range(min(num_mofs),max(num_mofs)+1):
-            for ranked_list in arrays_to_pick_from:
+            for ranked_list in array_list_gaskld:
                 index = 0
                 for array in ranked_list:
                     if index < num_best_worst and len(array['MOF_Array']) == array_size:
                         best_and_worst_arrays_by_gasKLD.append(array)
                         index +=1
 
-    return(best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD, best_ranked_by_product)
+    return(best_and_worst_arrays_by_absKLD, best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD)
 
 # ----- Saves pmf and mole fraction data for each gas/MOF combination -----
 # Keyword arguments:
