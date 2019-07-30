@@ -99,8 +99,9 @@ for mof in mof_list:
 # --------------------------------------------------
 element_pmf_results_df = pd.DataFrame(data=element_pmf_results)
 save_element_pmf_data(element_pmf_results_df, stdev, mrange)
+save_unbinned_array_pmf_data(gases, list_of_arrays, all_array_pmf_results)
 save_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities_sum)
-plot_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities_sum)
+# plot_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities_sum)
 timestamp = (datetime.now().strftime("%Y_%m_%d__%H_%M_%S"))
 write_data_as_tabcsv('saved_array_kld/best_and_worst_arrays_by_jointKLD_%s.csv' % timestamp, best_and_worst_arrays_by_jointKLD)
 write_data_as_tabcsv('saved_array_kld/best_and_worst_arrays_by_gasKLD_%s.csv' % timestamp, best_and_worst_arrays_by_gasKLD)

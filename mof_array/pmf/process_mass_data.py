@@ -473,11 +473,11 @@ def save_element_pmf_data(element_pmf_results, stdev, mrange):
 #     list_of_arrays -- list of all arrays, and MOFs in each array
 #     bins -- dictionary result from create_bins
 #     binned_probabilities -- list of dictionaries, mof array, gas, pmfs
-def save_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities):
+def save_unbinned_array_pmf_data(gases, list_of_arrays, all_array_pmf_results):
 
     # Make directory to store pmf data
     timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
-    os.makedirs("saved_array_pmfs/%s" % timestamp)
+    os.makedirs("saved_array_pmfs_unbinned/%s" % timestamp)
 
     # Assign numbers to each array for shorthand notation
     array_id_key = []
@@ -496,7 +496,59 @@ def save_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities
         array_id_key.append([array_id, array_name])
         array_id_dict.update({array_name: array_id})
 
-    filename = 'saved_array_pmfs/%s/array_id_list.csv' % (timestamp)
+    filename = 'saved_array_pmfs_unbinned/%s/array_id_list.csv' % (timestamp)
+    with open(filename,'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter="\t")
+        for key, val in array_id_dict.items():
+            writer.writerow([key, val])
+
+    # Generate array data and write to file
+    comps_to_save = []
+    for row in all_array_pmf_results:
+        comps_to_save.append([{'%s' % gas: row[gas]} for gas in gases])
+    for array in list_of_arrays:
+        array_name = '%s' % ' '.join(array)
+        pmfs_to_save = [{'PMF': row[array_name]} for row in all_array_pmf_results]
+        if len(array_name) <= 40:
+            filename = "saved_array_pmfs_unbinned/%s/%s.csv" % (timestamp, array_name)
+        else:
+            filename = "saved_array_pmfs_unbinned/%s/%s.csv" % (timestamp, str(array_id_dict[array_name]))
+        pmf_data = np.column_stack((comps_to_save, pmfs_to_save))
+        with open(filename,'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter="\t")
+            for line in pmf_data:
+                writer.writerow(line)
+
+# ----- Saves pmf and mole fraction data for each gas/MOF array combination -----
+# Keyword arguments:
+#     gases -- list of gases specified by user
+#     list_of_arrays -- list of all arrays, and MOFs in each array
+#     bins -- dictionary result from create_bins
+#     binned_probabilities -- list of dictionaries, mof array, gas, pmfs
+def save_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities):
+
+    # Make directory to store pmf data
+    timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
+    os.makedirs("saved_array_pmfs_binned/%s" % timestamp)
+
+    # Assign numbers to each array for shorthand notation
+    array_id_key = []
+    array_id_dict = {}
+    i = 0
+    num_elements = 0
+    for array in list_of_arrays:
+        if num_elements == len(array):
+            i += 1
+            num_elements = num_elements
+        else:
+            i = 1
+            num_elements = len(array)
+        array_id = str(num_elements)+'-'+str(i)
+        array_name = '%s' % ' '.join(array)
+        array_id_key.append([array_id, array_name])
+        array_id_dict.update({array_name: array_id})
+
+    filename = 'saved_array_pmfs_binned/%s/array_id_list.csv' % (timestamp)
     with open(filename,'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter="\t")
         for key, val in array_id_dict.items():
@@ -509,7 +561,10 @@ def save_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities
             array_name = '%s' % ' '.join(array)
             pmfs_to_save = [row[array_name] for row in binned_probabilities if '%s bin' % gas in row.keys()]
             pdfs_to_save = len(comps_to_save) * np.array(pmfs_to_save)
-            filename = "saved_array_pmfs/%s/%s_%s.csv" % (timestamp, str(array_id_dict[array_name]), str(gas))
+            if len(array_name) <= 40:
+                filename = "saved_array_pmfs_binned/%s/%s_%s.csv" % (timestamp, array_name, str(gas))
+            else:
+                filename = "saved_array_pmfs_binned/%s/%s_%s.csv" % (timestamp, str(array_id_dict[array_name]), str(gas))
             pdf_data = np.column_stack((comps_to_save, pdfs_to_save))
             with open(filename,'w', newline='') as csvfile:
                 writer = csv.writer(csvfile, delimiter="\t")
@@ -525,8 +580,8 @@ def save_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities
 def plot_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities):
 
     # Make directory to store figures
-    timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
-    os.makedirs("figures/%s" % timestamp)
+    timestamp = datetime.now().strftime('%Y_%m_%d__%H_%M_%S')
+    os.makedirs('saved_array_pmfs_binned_figures/%s' % timestamp)
 
     # Assign numbers to each array for shorthand notation
     array_id_key = []
@@ -545,7 +600,7 @@ def plot_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities
         array_id_key.append([array_id, array_name])
         array_id_dict.update({array_name: array_id})
 
-    filename = 'figures/%s/array_id_list.csv' % (timestamp)
+    filename = 'saved_array_pmfs_binned_figures/%s/array_id_list.csv' % (timestamp)
     with open(filename,'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter="\t")
         for key, val in array_id_dict.items():
@@ -564,10 +619,11 @@ def plot_binned_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities
             plot_PMF = plt.figure()
             plt.rc('xtick', labelsize=20)
             plt.rc('ytick', labelsize=20)
-            plt.plot(comps_to_plot, pdfs_to_plot, 'ro')
-            plt.title('Array: %s, Gas: %s' % (array, gas))
+            plt.plot(comps_to_plot, pdfs_to_plot, 'ro-')
             if len(array) <= 40:
-                plt.savefig("figures/%s/%s_%s.png" % (timestamp, array, str(gas)))
+                plt.title('Array: %s, Gas: %s' % (array, gas))
+                plt.savefig("saved_array_pmfs_binned_figures/%s/%s_%s.png" % (timestamp, array, str(gas)))
             else:
-                plt.savefig("figures/%s/%s_%s.png" % (timestamp, 'Array #'+array_id_dict[array]+' (See Key)', str(gas)))
+                plt.title('Array: %s, Gas: %s' % (array_id_dict[array], gas))
+                plt.savefig("saved_array_pmfs_binned_figures/%s/%s_%s.png" % (timestamp, 'Array#'+array_id_dict[array]+'_(See Key)', str(gas)))
             plt.close(plot_PMF)
