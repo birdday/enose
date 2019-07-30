@@ -1,7 +1,12 @@
-"""This code imports mass adsorption data and "experimental" adsorption data
+'''
+Original Code by: Jenna Gustafson
+Modifications by: Brian Day
+
+Jenna:
+﻿This code imports mass adsorption data and 'experimental' adsorption data
 from simulated output, for multiple MOFs and gas mixtures, and calculates the
-probability that specific gases are present in specific mole fractions
-(in each experimental case) based on the total mass adsorbed for each MOF.
+probability that specific gases are present in specific mole fractions (in
+each experimental case) based on the total mass adsorbed for each MOF.
 Additionally, the best MOF arrays for detecting each gas are reported,
 according to the highest information gain.
 """
@@ -15,6 +20,42 @@ from functools import reduce
 import operator
 
 import yaml
+Brian:
+Note on list comprehension: List comprehension will catch all instances, where
+as simple for loops will only catch the last instance, unless all variables
+are pre-allocated and appended to. Use list comprehension whenever possible.
+In some instances of the code, using a mof twice would not be captured. Try to
+fix this going forward.
+
+--------------------------------------------------
+----- Full List of Keywords used in functions ----
+--------------------------------------------------
+N.B. Keywords are also defined a second time with each function. Tried to use
+the same keyword whenever the argument was the same for clarity.
+  Simulation results:
+    exp_results_import -- dictionary formatted experimental results
+    sim_results_import -- dictionary formatted simulated results
+  From yaml file:
+    stdev -- standard deviation for the normal distribution
+    mrange -- range for which the difference between CDFs is calculated
+    gases -- list of gases in simulated mixtures
+    num_bins -- number of bins specified by user in configuration file
+    num_mixtures -- specify integer number of mixtures to add (for interpolation)
+    num_mofs -- lower and upper limit of desired number of MOFs in array
+    mof_list -- list of MOF structures simulated
+    mof_densities -- dictionary of densities
+  Calculated by functions / Used internally:
+    mof_array -- list of MOFs in a single array
+    list_of_arrays -- list of all arrays, and the MOFs in eaach array
+    bins -- dictionary containing bin points for each gas
+    binned_probabilities -- list of dictionaries, MOF array, gas, PMFs
+    element_pmf_results -- list of dictionaries including MOF, mixture, probability
+    array_pmf_results -- list of dictionaries, arrays, joint PMFs
+    array_kld_results -- list of dictionaries including, MOF array, gas, and corresponding KLD
+  Miscellaneous:
+    comps -- list of all simulated gas compositions
+'''
+
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
