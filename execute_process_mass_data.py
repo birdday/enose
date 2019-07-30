@@ -1,21 +1,47 @@
 #!/usr/bin/env python
+
+# --------------------------------------------------
+# ----- Import Python Packages ---------------------
+# --------------------------------------------------
 import sys
 import pandas as pd
 from datetime import datetime
-from mof_array.pmf.process_mass_data import (read_output_data,
-                                            yaml_loader,
-                                            write_output_data,
-                                            import_experimental_results,
-                                            import_simulated_data,
-                                            calculate_pmf,
-                                            create_bins,
-                                            bin_compositions,
-                                            array_pmf,
-                                            plot_binned_pmf_array,
-                                            save_array_pmf_data,
-                                            save_raw_pmf_data,
-                                            information_gain,
-                                            choose_best_arrays)
+from mof_array.pmf.process_mass_data import *
+# List of Functions and Arguments in process_mass_data:
+#     read_data_as_dict(filename)
+#           --> return list(output_data)
+#     write_data_as_tabcsv(filename, data)
+#           --> return(writer)
+#     yaml_loader(filepath)
+#           --> return(data)
+#     import_experimental_data(exp_results_import, mof_list, mof_densities, gases)
+#           --> return(exp_results_full, exp_results_mass, exp_mof_list)
+#     import_simulated_data(sim_results_import, mof_list, mof_densities, gases)
+#           --> return(sim_results_full)
+#     add_random_gas(gases, comps, num_mixtures)
+#           --> NOT FUCTIONAL CURRENTLY
+#     calculate_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange)
+#           --> return(element_pmf_results)
+#     caclulate_array_pmf(mof_array, element_pmf_results)
+#           --> return(single_array_pmf_results)
+#     calculate_all_arrays(mof_list, num_mofs, element_pmf_results, gases)
+#           --> return(mof_array_list, all_array_pmf_results)
+#     create_bins(gases, num_bins, mof_list, element_pmf_results)
+#           --> return(bins)
+#     bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results)
+#           --> return(binned_probabilities_sum, binned_probabilities_max)
+#     plot_binned_pmf_array(gases, list_of_arrays, bins, binned_probabilities)
+#           --> returns a set of plots to the folder 'figures'
+#     save_array_pmf_data(gases, list_of_arrays, bins, binned_probabilities)
+#           --> returns a set of csv files to the folder 'saved_array_pmfs'
+#     save_element_pmf_data(element_pmf_results, stdev, mrange, num_mofs)
+#           --> returns a set of csv files to the folder 'saved_element_pmfs'
+#     calculate_kld(gases, list_of_arrays, bins, binned_probabilities)
+#           --> return(array_kld_results)
+#     choose_arrays(gases, num_mofs, array_kld_results, num_best_worst)
+#           --> return(best_and_worst_arrays_by_jointKLD,
+#               best_and_worst_arrays_by_gasKLD, best_ranked_by_product)
+
 
 # Import results as dictionary
 sim_results_import = read_data_as_dict(sim_data)
