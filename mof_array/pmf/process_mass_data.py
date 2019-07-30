@@ -147,62 +147,78 @@ def add_random_gas(gases, comps, num_mixtures):
             comps.append(random_gas)
             masses.extend(predicted_mass)
 
-def calculate_pmf(experimental_mass_results, import_data_results, mofs_list, stdev, mrange):
-    """Calculates probability mass function of each data point
+# ----- Calculates probability mass function (PMF) of each data point -----
+# Keyword arguments:
+#     exp_results_full -- dictionary formatted experimental results (with new mass units)
+#     sim_results_full -- dictionary formatted experimental results (with new mass units)
+#     mof_list -- names of all MOFs
+#     stdev -- standard deviation for the normal distribution
+#     mrange -- range for which the difference between cdfs is calculated
+# ----------
+# Formula for the probability of x in the trunacted PDF over range [a,b] is:
+#                           Norm_PDF(mean,var,x)
+# Trunc_PDF(x) = -------------------------------------------
+#                Norm_CDF(mean,var,b) - Norm_CDF(mean,var,a)
+# Can be calculated directly in python with:
+#   Trunc_PDF(x) = ss.truncnorm.pdf(x, alpha, beta, loc=mu, scale=sigma)
+# Jenna's approach is probably better. She calculates the probaility that that
+# the real mass falls in a small range around the measured mass. Examine the
+# difference between these two approaches in more detail, along with the effects
+# of the employed error function parameters.
+def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange):
 
-    Keyword arguments:
-    experimental_mass_results -- list of dictionaries, masses from experiment
-    import_data_results -- dictionary, results of import_simulated_data method
-    mofs_list -- names of all MOFs
-    stdev -- standard deviation for the normal distribution
-    mrange -- range for which the difference between cdfs is calculated
-    """
-    pmf_results = []
-    for mof in mofs_list:
+    element_pmf_results = []
+    for mof in mof_list:
+        # Isolate the simulated results for the mof
+        all_results_sim = [row for row in sim_results_full if row['MOF'] == mof]
+        all_masses_sim = [row['Mass_mg/cm3'] for row in all_results_sim]
 
+        # Isolate the experimental result(s) for the mof
+        all_results_exp = [row for row in exp_results_full if row['MOF'] == mof]
+        all_masses_exp = [row['Mass_mg/cm3'] for row in all_results_exp]
+
+        # Calculate all pmfs based on the experimental mass and truncated normal
+        # probability distribution.
         mof_temp_dict = []
-        # Combine mole fractions, mass values, and pmfs into a numpy array for the dictionary creation.
-        all_results_temp = [row for row in import_data_results if row['MOF'] == mof]
-        all_masses = [row['Mass_mg/cm3'] for row in all_results_temp]
+        for mass_exp in all_masses_exp:
+            probs_range = []
+            # probs_exact = []
+            a, b = 0, float(max(all_masses_sim)) * (1 + mrange)
+            mu, sigma = float(mass_exp), float(stdev)*float(mass_exp)
+            alpha, beta = ((a-mu)/sigma), ((b-mu)/sigma)
+            for mass_sim in all_masses_sim:
+                upper_prob = ss.truncnorm.cdf(float(mass_sim) * (1 + mrange), alpha, beta, loc = mu, scale = sigma)
+                lower_prob = ss.truncnorm.cdf(float(mass_sim) * (1 - mrange), alpha, beta, loc = mu, scale = sigma)
+                probs_range.append(upper_prob - lower_prob)
+                # prob_singlepoint = ss.truncnorm.pdf(float(mass_sim), alpha, beta, loc=mu, scale=sigma)
+                # probs_exact.append(prob_singlepoint)
+            sum_probs_range = sum(probs_range)
+            norm_probs_range = [(i/sum_probs_range) for i in probs_range]
+            # sum_probs_exact = sum(probs_exact)
+            # norm_probs_exact = [(i/sum_probs_exact) for i in probs_exact]
 
-        #Loop through all of the experimental masses for each MOF, read in and save comps
-        experimental_mass_data = [data_row['Mass_mg/cm3'] for data_row in experimental_mass_results
-                                    if data_row['MOF'] == mof]
-
-        for mof_mass in experimental_mass_data:
-            # Sets up the truncated distribution parameters
-            myclip_a, myclip_b = 0, float(max(all_masses)) * (1 + mrange)
-            my_mean, my_std = float(mof_mass), float(stdev) * float(mof_mass)
-            a, b = (myclip_a - my_mean) / my_std, (myclip_b - my_mean) / my_std
-
+            # Update dictionary with pmf for each MOF
             new_temp_dict = []
-            # Calculates all pmfs based on the experimental mass and truncated normal probability distribution.
-            probs = []
-            for mass in all_masses:
-                probs_upper = ss.truncnorm.cdf(float(mass) * (1 + mrange), a, b, loc = my_mean, scale = my_std)
-                probs_lower = ss.truncnorm.cdf(float(mass) * (1 - mrange), a, b, loc = my_mean, scale = my_std)
-                probs.append(probs_upper - probs_lower)
-
-            sum_probs = sum(probs)
-            norm_probs = [(i / sum_probs) for i in probs]
-
-            # Update dictionary with pmf for each MOF, key specified by experimental mass
+            # Initialize the dictioary
             if mof_temp_dict == []:
-                for index in range(len(norm_probs)):
-                    mof_temp_dict = all_results_temp[index].copy()
-                    mof_temp_dict.update({ 'PMF' : norm_probs[index] })
+                for index in range(len(norm_probs_range)):
+                    mof_temp_dict = all_results_sim[index].copy()
+                    mof_temp_dict.update({ 'PMF_Range' : norm_probs_range[index] })
+                    # mof_temp_dict.update({ 'PMF_Exact' : norm_probs_exact[index] })
                     new_temp_dict.extend([mof_temp_dict])
-                mass_temp_dict = new_temp_dict
+                new_temp_dict_2 = new_temp_dict
+            # Add to the exisitng dictionary
             else:
-                for index in range(len(norm_probs)):
-                    mof_temp_dict = mass_temp_dict[index].copy()
-                    mof_temp_dict.update({ 'PMF' : norm_probs[index] })
+                for index in range(len(norm_probs_range)):
+                    mof_temp_dict = new_temp_dict_2[index].copy()
+                    mof_temp_dict.update({ 'PMF_Range' : norm_probs_range[index] })
+                    # mof_temp_dict.update({ 'PMF_Exact' : norm_probs_exact[index] })
                     new_temp_dict.extend([mof_temp_dict])
-                mass_temp_dict = new_temp_dict
+                new_temp_dict_2 = new_temp_dict
 
-        pmf_results.extend(mass_temp_dict)
+        element_pmf_results.extend(new_temp_dict_2)
 
-    return(pmf_results)
+    return(element_pmf_results)
 
 def compound_probability(mof_array, calculate_pmf_results):
     """Combines and normalizes pmfs for a mof array and gas combination, used in method 'array_pmf'
