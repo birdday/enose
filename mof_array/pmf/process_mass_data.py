@@ -9,17 +9,7 @@ probability that specific gases are present in specific mole fractions (in
 each experimental case) based on the total mass adsorbed for each MOF.
 Additionally, the best MOF arrays for detecting each gas are reported,
 according to the highest information gain.
-"""
-import os
-import sys
-from math import isnan, log
-import csv
-from random import random
-from itertools import combinations
-from functools import reduce
-import operator
 
-import yaml
 Brian:
 Note on list comprehension: List comprehension will catch all instances, where
 as simple for loops will only catch the last instance, unless all variables
@@ -56,14 +46,28 @@ the same keyword whenever the argument was the same for clarity.
     comps -- list of all simulated gas compositions
 '''
 
+# --------------------------------------------------
+# ----- Import Python Packages ---------------------
+# --------------------------------------------------
+import copy
+import csv
 import numpy as np
+import operator
+import os
 import pandas as pd
-from matplotlib import pyplot as plt
-import scipy.stats as ss
-from scipy.spatial import Delaunay
 import scipy.interpolate as si
-from scipy.interpolate import spline
+import scipy.stats as ss
+import sys
+import yaml
+
 from datetime import datetime
+from functools import reduce
+from itertools import combinations
+from math import isnan, log
+from matplotlib import pyplot as plt
+from random import random
+from scipy.spatial import Delaunay
+from scipy.interpolate import spline
 
 # Function imports csv file as a dictionary
 
