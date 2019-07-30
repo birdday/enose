@@ -79,11 +79,6 @@ def read_data_as_dict(filename):
         output_data = csv.DictReader(csvfile, delimiter="\t")
         return list(output_data)
 
-def yaml_loader(filepath):
-    with open(filepath, 'r') as yaml_file:
-        data = yaml.load(yaml_file)
-    return(data)
-
 def write_data_as_tabcsv(filename, data):
     with open(filename,'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter="\t")
@@ -91,80 +86,48 @@ def write_data_as_tabcsv(filename, data):
             writer.writerow([line])
     return(writer)
 
-def import_experimental_results(mofs_list, experimental_mass_import, mof_densities, gases):
-    """Imports the experimental data and puts it in dictionary format
+def yaml_loader(filepath):
+    with open(filepath, 'r') as yaml_file:
+        data = yaml.load(yaml_file)
+    return(data)
 
-    Keyword arguments:
-    mofs_list -- list of MOF structures simulated
-    experimental_mass_import -- dictionary formatted experimental results for each mof
-    mof_densities -- dictionary of densities
-    gases -- list of gases in simulated mixtures
-    """
-    experimental_results = []
-    experimental_mass_mofs = []
-    experimental_mofs = []
-
-    for mof in mofs_list:
-
-        # Calculates masses in terms of mg/(cm3 of framework)
-        masses = [float(mof_densities[row['MOF']]) * float(row['Mass']) for row in
-                    experimental_mass_import if row['MOF'] == mof]
-        if len(masses) is not 0:
-
-            experimental_mofs.append(str(mof))
-            # Saves composition values as a list, necessary type for the Delaunay input argument
-            comps = []
-            for row in experimental_mass_import:
-                if row['MOF'] == mof:
-                    comps.extend([[float(row[gas]) for gas in gases]])
-
-            # List of experimental masses for current mof
-            experimental_mass_temp = [ row for row in experimental_mass_import if row['MOF'] == mof]
-
-            for index in range(len(masses)):
-                temp_dict = experimental_mass_temp[index].copy()
-                temp_dict.update({ 'Mass_mg/cm3' : masses[index] })
-                experimental_results.extend([temp_dict])
-
-            # Dictionary format of all the experimental data
-            temp_list = {'MOF' : mof, 'Mass' :[row['Mass_mg/cm3'] for row in experimental_results if row['MOF'] == mof]}
-            experimental_mass_mofs.append(temp_list)
-
-        else:
-            None
-
-    return(experimental_results, experimental_mass_mofs, experimental_mofs)
-
-def import_simulated_data(mofs_list, all_results, mof_densities, gases):
-    """Imports simulated data and puts it in dictionary format
-    If desired, interpolation is performed and may be used to create a denser data set
-
-    Keyword arguments:
-    mofs_list -- names of all mofs
-    all_results -- imported csv of outputs as dictionary
-    mof_densities -- dictionary of densities for each mof
-    gases -- list of all gases
-    """
-    simulated_results = []
-    for mof in mofs_list:
-        # Calculates masses in terms of mg/(cm3 of framework)
-        masses = [float(mof_densities[row['MOF']]) * float(row['Mass']) for row in
-                    all_results if row['MOF'] == mof]
-
-        # Saves composition values as a list, necessary type for the Delaunay input argument
-        comps = []
-        for row in all_results:
+# ----- Convert simulated/experimental data into dictionary format -----
+# Also calculates masses in terms of mg/(cm^3 of framework)
+# Keyword arguments:
+#     exp_results_import -- dictionary formatted experimental results
+#     sim_results_import -- dictionary formatted simulated results
+#     mof_list -- list of MOF structures simulated
+#     mof_densities -- dictionary of densities
+#     gases -- list of gases in simulated mixtures
+def import_experimental_data(exp_results_import, mof_list, mof_densities, gases):
+    # Can probibily omit exp_results_mass in the future and just use the full
+    # dictionary for furthere analysis.
+    exp_results_full = []
+    exp_results_mass = []
+    exp_mof_list = []
+    for mof in mof_list:
+        for row in exp_results_import:
             if row['MOF'] == mof:
-                comps.extend([[float(row[gas]) for gas in gases]])
+                mass = float(mof_densities[mof]) * float(row['Mass'])
+                exp_results_temp = row.copy()
+                exp_results_temp.update({'Mass_mg/cm3' : mass})
+                exp_results_full.extend([exp_results_temp])
+                exp_results_mass.append({'MOF' : mof, 'Mass' : mass})
+                exp_mof_list.append(str(mof))
+            else:
+                None
+    return(exp_results_full, exp_results_mass, exp_mof_list)
 
-        # Update dictionary with simulated data in terms of mg/cm3
-        all_results_temp = [ row for row in all_results if row['MOF'] == mof]
-        for index in range(len(masses)):
-            temp_dict = all_results_temp[index].copy()
-            temp_dict.update({ 'Mass_mg/cm3' : masses[index] })
-            simulated_results.extend([temp_dict])
-
-    return(simulated_results)
+def import_simulated_data(sim_results_import, mof_list, mof_densities, gases):
+    sim_results_full = []
+    for mof in mof_list:
+        for row in sim_results_import:
+            if row['MOF'] == mof:
+                mass = float(mof_densities[mof]) * float(row['Mass'])
+                sim_results_temp = row.copy()
+                sim_results_temp.update({'Mass_mg/cm3' : mass})
+                sim_results_full.extend([sim_results_temp])
+    return(sim_results_full)
 
 def add_random_gas(comps, num_mixtures):
     """ Adds random gas mixtures to the original data, between min and max of original mole fractions
