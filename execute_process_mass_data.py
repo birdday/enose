@@ -42,6 +42,14 @@ from mof_array.pmf.process_mass_data import *
 #           --> return(best_and_worst_arrays_by_jointKLD,
 #               best_and_worst_arrays_by_gasKLD, best_ranked_by_product)
 
+# --------------------------------------------------
+# ----- Import RASPA Data and yaml File ------------
+# --------------------------------------------------
+# Redefine system arguments
+# sim_data = sys.argv[1]
+# exp_data = sys.argv[2]
+sim_data = 'ALL_MOFS.csv'
+exp_data = 'exp_data_175.csv'
 
 # Import results as dictionary
 sim_results_import = read_data_as_dict(sim_data)
