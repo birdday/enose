@@ -69,9 +69,12 @@ from random import random
 from scipy.spatial import Delaunay
 from scipy.interpolate import spline
 
-# Function imports csv file as a dictionary
+# --------------------------------------------------
+# ----- User-defined Python Functions --------------
+# --------------------------------------------------
 
-def read_output_data(filename):
+# ----- Read and Write Data Files -----
+def read_data_as_dict(filename):
     with open(filename,newline='') as csvfile:
         output_data = csv.DictReader(csvfile, delimiter="\t")
         return list(output_data)
@@ -81,7 +84,7 @@ def yaml_loader(filepath):
         data = yaml.load(yaml_file)
     return(data)
 
-def write_output_data(filename, data):
+def write_data_as_tabcsv(filename, data):
     with open(filename,'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter="\t")
         for line in data:

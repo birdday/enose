@@ -17,8 +17,9 @@ from mof_array.pmf.process_mass_data import (read_output_data,
                                             information_gain,
                                             choose_best_arrays)
 
-all_results_import = read_output_data(sys.argv[1])
-experimental_mass_import = read_output_data(sys.argv[2])
+# Import results as dictionary
+sim_results_import = read_data_as_dict(sim_data)
+exp_results_import = read_data_as_dict(exp_data)
 
 filepath = 'settings/process_config.yaml'
 data = yaml_loader(filepath)
