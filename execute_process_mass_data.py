@@ -77,22 +77,22 @@ for mof in mof_list:
 # ----- Calculate arrays, PMFs, KLDs, etc. ---------
 # --------------------------------------------------
 # N.B. Parentheses are only necessary for implicit line continuation
-(exp_results_full, exp_results_mass, exp_mof_list) = (
-    import_experimental_data(exp_results_import, mof_list, mof_densities, gases) )
-(sim_results_full) = (
-    import_simulated_data(sim_results_import, mof_list, mof_densities, gases) )
-(element_pmf_results) = (
-    calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange) )
-(list_of_arrays, all_array_pmf_results) = (
-    calculate_all_arrays(mof_list, num_mofs, element_pmf_results, gases) )
-(bins) = (
-    create_bins(gases, num_bins, mof_list, element_pmf_results) )
-(binned_probabilities_sum, binned_probabilities_max) = (
-    bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results) )
-(array_kld_results) = (
-    calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_probabilities_sum) )
-(best_and_worst_arrays_by_absKLD, best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD) = (
-    choose_arrays(gases, num_mofs, array_kld_results, num_best_worst) )
+exp_results_full, exp_results_mass, exp_mof_list = /
+    import_experimental_data(exp_results_import, mof_list, mof_densities, gases)
+sim_results_full = /
+    import_simulated_data(sim_results_import, mof_list, mof_densities, gases)
+element_pmf_results = /
+    calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange)
+list_of_arrays, all_array_pmf_results = /
+    calculate_all_arrays(mof_list, num_mofs, element_pmf_results, gases)
+bins = /
+    create_bins(gases, num_bins, mof_list, element_pmf_results)
+binned_probabilities_sum, binned_probabilities_max = /
+    bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results)
+array_kld_results = /
+    calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_probabilities_sum)
+best_and_worst_arrays_by_absKLD, best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD = /
+    choose_arrays(gases, num_mofs, array_kld_results, num_best_worst)
 
 # --------------------------------------------------
 # ----- Choose what to save ------------------------
