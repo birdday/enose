@@ -85,13 +85,13 @@ def write_data_as_tabcsv(filename, data):
         writer = csv.writer(csvfile, delimiter="\t")
         for line in data:
             writer.writerow([line])
-    return(writer)
+    return writer
 
 
 def yaml_loader(filepath):
     with open(filepath, 'r') as yaml_file:
         data = yaml.load(yaml_file)
-    return(data)
+    return data
 
 
 def import_experimental_data(exp_results_import, mof_list, mof_densities, gases):
@@ -121,7 +121,7 @@ def import_experimental_data(exp_results_import, mof_list, mof_densities, gases)
                 exp_mof_list.append(str(mof))
             else:
                 None
-    return(exp_results_full, exp_results_mass, exp_mof_list)
+    return exp_results_full, exp_results_mass, exp_mof_list
 
 
 def import_simulated_data(sim_results_import, mof_list, mof_densities, gases):
@@ -133,7 +133,7 @@ def import_simulated_data(sim_results_import, mof_list, mof_densities, gases):
                 sim_results_temp = row.copy()
                 sim_results_temp.update({'Mass_mg/cm3' : mass})
                 sim_results_full.extend([sim_results_temp])
-    return(sim_results_full)
+    return sim_results_full
 
 
 def add_random_gas(gases, comps, num_mixtures):
@@ -229,7 +229,7 @@ def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, m
 
         element_pmf_results.extend(new_temp_dict_2)
 
-    return(element_pmf_results)
+    return element_pmf_results
 
 
 def calculate_array_pmf(mof_array, element_pmf_results):
@@ -249,7 +249,7 @@ def calculate_array_pmf(mof_array, element_pmf_results):
             compound_pmfs = mof_pmf
     norm_factor = sum(compound_pmfs)
     single_array_pmf_results = [ i / norm_factor for i in compound_pmfs ]
-    return(single_array_pmf_results)
+    return single_array_pmf_results
 
 
 def calculate_all_arrays(mof_list, num_mofs, element_pmf_results, gases):
@@ -290,7 +290,7 @@ def calculate_all_arrays(mof_list, num_mofs, element_pmf_results, gases):
             for index in range(len(comp_set_dict)):
                 all_array_pmf_results[index]['%s' % ' '.join(mof_array)] = single_array_pmf_results[index]
 
-    return(mof_array_list, all_array_pmf_results)
+    return mof_array_list, all_array_pmf_results
 
 
 def create_bins(gases, num_bins, mof_list, element_pmf_results):
@@ -335,7 +335,7 @@ def create_bins(gases, num_bins, mof_list, element_pmf_results):
     for row in bin_points:
         bins.append({gases[i] : row[i] for i in range(len(gases))})
 
-    return(bins)
+    return bins
 
 
 def bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results):
@@ -398,7 +398,7 @@ def bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results):
         binned_probabilities_sum.extend(all_bins_temp_sum)
         binned_probabilities_max.extend(all_bins_temp_max)
 
-    return(binned_probabilities_sum, binned_probabilities_max)
+    return binned_probabilities_sum, binned_probabilities_max
 
 
 def calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_probabilities):
@@ -435,7 +435,7 @@ def calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_pro
         dict_temp.update({'Array_Size' : len(dict_temp['MOF_Array'])})
         array_kld_results.append(dict_temp)
 
-    return(array_kld_results)
+    return array_kld_results
 
 
 def choose_arrays(gases, num_mofs, array_kld_results, num_best_worst):
@@ -488,7 +488,7 @@ def choose_arrays(gases, num_mofs, array_kld_results, num_best_worst):
                         best_and_worst_arrays_by_gasKLD.append(array)
                         index +=1
 
-    return(best_and_worst_arrays_by_absKLD, best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD)
+    return best_and_worst_arrays_by_absKLD, best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD
 
 
 def save_element_pmf_data(element_pmf_results, stdev, mrange):
