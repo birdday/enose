@@ -56,7 +56,7 @@ sim_results_import = read_data_as_dict(sim_data)
 exp_results_import = read_data_as_dict(exp_data)
 
 # Import yaml file as dictoncary
-filepath = 'settings/process_config.yaml'
+filepath = 'settings/process_config.sample.yaml'
 data = yaml_loader(filepath)
 
 # Redefine key varaibles in yaml file
@@ -77,21 +77,21 @@ for mof in mof_list:
 # ----- Calculate arrays, PMFs, KLDs, etc. ---------
 # --------------------------------------------------
 # N.B. Parentheses are only necessary for implicit line continuation
-exp_results_full, exp_results_mass, exp_mof_list = /
+exp_results_full, exp_results_mass, exp_mof_list = \
     import_experimental_data(exp_results_import, mof_list, mof_densities, gases)
-sim_results_full = /
+sim_results_full = \
     import_simulated_data(sim_results_import, mof_list, mof_densities, gases)
-element_pmf_results = /
+element_pmf_results = \
     calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange)
-list_of_arrays, all_array_pmf_results = /
+list_of_arrays, all_array_pmf_results = \
     calculate_all_arrays(mof_list, num_mofs, element_pmf_results, gases)
-bins = /
+bins = \
     create_bins(gases, num_bins, mof_list, element_pmf_results)
-binned_probabilities_sum, binned_probabilities_max = /
+binned_probabilities_sum, binned_probabilities_max = \
     bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results)
-array_kld_results = /
+array_kld_results = \
     calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_probabilities_sum)
-best_and_worst_arrays_by_absKLD, best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD = /
+best_and_worst_arrays_by_absKLD, best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD = \
     choose_arrays(gases, num_mofs, array_kld_results, num_best_worst)
 
 # --------------------------------------------------
@@ -100,9 +100,10 @@ best_and_worst_arrays_by_absKLD, best_and_worst_arrays_by_jointKLD, best_and_wor
 element_pmf_results_df = pd.DataFrame(data=element_pmf_results)
 # save_element_pmf_data(element_pmf_results_df, stdev, mrange)
 list_of_array_ids = assign_array_ids(list_of_arrays)
-save_unbinned_array_pmf_data(gases, list_of_arrays, all_array_pmf_results)
+save_unbinned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, all_array_pmf_results)
 save_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, binned_probabilities_sum)
 plot_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, binned_probabilities_sum)
+
 timestamp = (datetime.now().strftime("%Y_%m_%d__%H_%M_%S"))
 write_data_as_tabcsv('saved_array_kld/best_and_worst_arrays_by_absKLD_%s.csv' % timestamp, best_and_worst_arrays_by_absKLD)
 write_data_as_tabcsv('saved_array_kld/best_and_worst_arrays_by_jointKLD_%s.csv' % timestamp, best_and_worst_arrays_by_jointKLD)

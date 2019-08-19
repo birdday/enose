@@ -509,11 +509,11 @@ def assign_array_ids(list_of_arrays):
         array_name = '%s' % ' '.join(array)
         array_id_dict.update({array_name: array_id})
 
-    filename = 'saved_array_pmfs_unbinned/%s/array_id_list.csv' % (timestamp)
+    filename = 'array_id_list.csv'
     with open(filename,'w', newline='') as csvfile:
         writer = csv.writer(csvfile, delimiter="\t")
         for key, val in array_id_dict.items():
-            writer.writerow([key, val])
+            writer.writerow([val, key])
 
     return(array_id_dict)
 
@@ -544,9 +544,7 @@ def save_unbinned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, all_a
     os.makedirs("saved_array_pmfs_unbinned/%s" % timestamp)
 
     # Generate array data and write to file
-    header = []
-    for gas in gases:
-        header.extend([str(gas)])
+    header = copy.deepcopy(gases)
     header.extend(['PMF'])
 
     comps_to_save = []
