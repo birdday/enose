@@ -517,19 +517,18 @@ def assign_array_ids(list_of_arrays):
 
     return(array_id_dict)
 
-def save_element_pmf_data(element_pmf_results, stdev, mrange):
+def save_element_pmf_data(element_pmf_results, stdev, mrange, timestamp):
     """
     ----- Saves pmf and mole fraction data for each gas/MOF combination -----
     Keyword arguments:
         element_pmf_results -- list of dictionaries with all pmf values
     """
 
-    timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
     data_frame = pd.DataFrame(element_pmf_results)
     data_frame.to_csv('saved_element_pmfs/%s_stdev_%s_mrange_%s.csv' % (stdev, mrange, timestamp), sep='\t')
 
 
-def save_unbinned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, all_array_pmf_results):
+def save_unbinned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, all_array_pmf_results, timestamp):
     """
     ----- Saves pmf and mole fraction data for each gas/MOF array combination -----
     Keyword arguments:
@@ -540,7 +539,6 @@ def save_unbinned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, all_a
     """
 
     # Make directory to store pmf data
-    timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
     os.makedirs("saved_array_pmfs_unbinned/%s" % timestamp)
 
     # Generate array data and write to file
@@ -569,7 +567,7 @@ def save_unbinned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, all_a
                 writer.writerow(line)
 
 
-def save_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, binned_probabilities):
+def save_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, binned_probabilities, timestamp):
     """
     ----- Saves pmf and mole fraction data for each gas/MOF array combination -----
     Keyword arguments:
@@ -580,7 +578,6 @@ def save_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, b
     """
 
     # Make directory to store pmf data
-    timestamp = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
     os.makedirs("saved_array_pmfs_binned/%s" % timestamp)
 
     # Generate array data and write to file
@@ -598,7 +595,7 @@ def save_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, b
                     writer.writerow(line)
 
 
-def plot_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, binned_probabilities):
+def plot_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, binned_probabilities, timestamp):
     """
     ----- Plots pmf vs mole fraction for each gas/MOF array combination -----
     Keyword arguments:
@@ -609,7 +606,6 @@ def plot_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, b
     """
 
     # Make directory to store figures
-    timestamp = datetime.now().strftime('%Y_%m_%d__%H_%M_%S')
     os.makedirs('saved_array_pmfs_binned_figures/%s' % timestamp)
 
     # Generate the plots
