@@ -107,4 +107,3 @@ plot_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, binne
 write_data_as_tabcsv('saved_array_kld/best_and_worst_arrays_by_absKLD_%s.csv' % timestamp, best_and_worst_arrays_by_absKLD)
 write_data_as_tabcsv('saved_array_kld/best_and_worst_arrays_by_jointKLD_%s.csv' % timestamp, best_and_worst_arrays_by_jointKLD)
 write_data_as_tabcsv('saved_array_kld/best_and_worst_arrays_by_gasKLD_%s.csv' % timestamp, best_and_worst_arrays_by_gasKLD)
-# write_data_as_tabcsv('saved_array_kld/all_ranked_by_jointKLD_%s.csv' % timestamp, all_ranked_by_jointKLD)
