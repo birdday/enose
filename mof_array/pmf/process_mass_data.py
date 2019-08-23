@@ -114,15 +114,13 @@ def import_experimental_data(exp_results_import, mof_list, mof_densities, gases)
         for row in exp_results_import:
             if row['MOF'] == mof:
                 mass = float(mof_densities[mof]) * float(row['Mass'])
-                exp_results_temp = row.copy()
-                exp_results_temp.update({'Mass_mg/cm3' : mass})
-                exp_results_full.extend([exp_results_temp])
+                row['Mass_mg/cm3'] = mass
+                exp_results_full.extend([row])
                 exp_results_mass.append({'MOF' : mof, 'Mass' : mass})
-                exp_mof_list.append(str(mof))
+                exp_mof_list.append(mof)
             else:
                 None
     return exp_results_full, exp_results_mass, exp_mof_list
-
 
 def import_simulated_data(sim_results_import, mof_list, mof_densities, gases):
     sim_results_full = []
@@ -130,9 +128,8 @@ def import_simulated_data(sim_results_import, mof_list, mof_densities, gases):
         for row in sim_results_import:
             if row['MOF'] == mof:
                 mass = float(mof_densities[mof]) * float(row['Mass'])
-                sim_results_temp = row.copy()
-                sim_results_temp.update({'Mass_mg/cm3' : mass})
-                sim_results_full.extend([sim_results_temp])
+                row['Mass_mg/cm3'] = mass
+                sim_results_full.extend([row])
     return sim_results_full
 
 
@@ -283,7 +280,7 @@ def calculate_all_arrays(mof_list, num_mofs, element_pmf_results, gases):
             for index in range(len(comp_set_dict)):
                 array_dict = {'%s' % ' '.join(mof_array) : single_array_pmf_results[index]}
                 for gas in gases:
-                    array_dict.update({ '%s' % gas : float(comp_set_dict[index][gas])})
+                    array_dict[gas] = float(comp_set_dict[index][gas])
                 all_array_pmf_results.extend([array_dict])
         else:
             # Not First Array: Update Dictionary
@@ -364,7 +361,7 @@ def bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results):
                  upper_bin = bins[i][gas]
                  gas_comp = float(row[gas])
                  if gas_comp >= lower_bin and gas_comp < upper_bin:
-                     row.update({'%s bin' % gas: lower_bin})
+                     row['%s bin' % gas] = lower_bin
 
         # Loops through all of the bins and takes sum over all pmfs in that bin.
         all_bins_temp_sum = []
@@ -385,11 +382,11 @@ def bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results):
             with_max = copy.deepcopy(single_bin_temp)
             for array in array_names:
                 if array_pmfs_temp[array] == []:
-                    with_sum.update({array : 0})
-                    with_max.update({array : 0})
+                    with_sum[array] = 0
+                    with_max[array] = 0
                 else:
-                    with_sum.update({array : sum(array_pmfs_temp[array])})
-                    with_max.update({array : max(array_pmfs_temp[array])})
+                    with_sum[array] = sum(array_pmfs_temp[array])
+                    with_max[array] = max(array_pmfs_temp[array])
             all_bins_temp_sum.append(with_sum)
             all_bins_temp_max.append(with_max)
 
@@ -419,19 +416,19 @@ def calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_pro
         pmfs_per_array_abs = [row[array_name] for row in all_array_pmf_results]
         reference_prob_abs = 1/len(pmfs_per_array_abs)
         abs_kld = sum([float(pmf)*log(float(pmf)/reference_prob_abs,2) for pmf in pmfs_per_array_abs if pmf != 0])
-        dict_temp.update({'Absolute_KLD' : round(abs_kld,4)})
+        dict_temp['Absolute_KLD'] = round(abs_kld,4)
 
         # Calculate Component KLD
         for gas in gases:
             reference_prob_comp = 1/len(bins)
             pmfs_per_array_comp = [row[array_name] for row in binned_probabilities if '%s bin' % gas in row.keys()]
             kld_comp = sum([float(pmf)*log(float(pmf)/reference_prob_comp,2) for pmf in pmfs_per_array_comp if pmf != 0])
-            dict_temp.update({'%s KLD' % gas : round(kld_comp,4)})
+            dict_temp['%s KLD' % gas] = round(kld_comp,4)
 
         # Calculate Joint KLD
         product_temp = reduce(operator.mul, [dict_temp['%s KLD' % gas] for gas in gases], 1)
-        dict_temp.update({'Joint_KLD' : product_temp})
-        dict_temp.update({'Array_Size' : len(dict_temp['MOF_Array'])})
+        dict_temp['Joint_KLD'] = product_temp
+        dict_temp['Array_Size'] = len(dict_temp['MOF_Array'])
         array_kld_results.append(dict_temp)
 
     return array_kld_results
@@ -507,7 +504,7 @@ def assign_array_ids(list_of_arrays):
             num_elements = len(array)
         array_id = str(num_elements)+'-'+str(i)
         array_name = '%s' % ' '.join(array)
-        array_id_dict.update({array_name: array_id})
+        array_id_dict[array_name] = array_id
 
     filename = 'array_id_list.csv'
     with open(filename,'w', newline='') as csvfile:
