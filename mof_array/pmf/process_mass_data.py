@@ -587,7 +587,7 @@ def save_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, b
             array_name = '%s' % ' '.join(array)
             pmfs_to_save = [row[array_name] for row in binned_probabilities if '%s bin' % gas in row.keys()]
             pdfs_to_save = len(comps_to_save) * np.array(pmfs_to_save)
-            filename = "saved_array_pmfs_binned/%s/%s_%s.csv" % (timestamp, str(list_of_array_ids[array_name]), str(gas))
+            filename = "saved_array_pmfs_binned/%s/%s_%s.csv" % (timestamp, str(list_of_array_ids[array_name]), gas)
             pdf_data = np.column_stack((comps_to_save, pdfs_to_save))
             with open(filename,'w', newline='') as csvfile:
                 writer = csv.writer(csvfile, delimiter="\t")
@@ -623,5 +623,5 @@ def plot_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, b
             plt.rc('ytick', labelsize=20)
             plt.plot(comps_to_plot, pdfs_to_plot, 'ro-')
             plt.title('Array: %s, Gas: %s' % (list_of_array_ids[array], gas))
-            plt.savefig("saved_array_pmfs_binned_figures/%s/%s_%s.png" % (timestamp, 'Array#'+list_of_array_ids[array]+'_(See Key)', str(gas)))
+            plt.savefig("saved_array_pmfs_binned_figures/%s/Array#%s_%s.png" % (timestamp, list_of_array_ids[array], gas))
             plt.close(plot_PMF)
