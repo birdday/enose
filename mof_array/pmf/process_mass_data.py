@@ -104,7 +104,7 @@ def import_experimental_data(exp_results_import, mof_list, mof_densities, gases)
         mof_list -- list of MOF structures simulated
         mof_densities -- dictionary of densities
         gases -- list of gases in simulated mixtures
-    Can probibily omit exp_results_mass in the future and just use the full
+    Can probably omit exp_results_mass in the future and just use the full
     dictionary for further analysis.
     """
     exp_results_full = []
@@ -415,7 +415,7 @@ def calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_pro
         dict_temp = {'MOF_Array' : array}
         array_name = '%s' % ' '.join(array)
 
-        # Calculate Aboslute KLD
+        # Calculate Absolute KLD
         pmfs_per_array_abs = [row[array_name] for row in all_array_pmf_results]
         reference_prob_abs = 1/len(pmfs_per_array_abs)
         abs_kld = sum([float(pmf)*log(float(pmf)/reference_prob_abs,2) for pmf in pmfs_per_array_abs if pmf != 0])

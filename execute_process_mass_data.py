@@ -59,7 +59,7 @@ exp_results_import = read_data_as_dict(exp_data)
 filepath = 'settings/process_config.sample.yaml'
 data = yaml_loader(filepath)
 
-# Redefine key varaibles in yaml file
+# Redefine key variables in yaml file
 num_mofs = data['number_mofs']
 num_mixtures = data['num_mixtures']
 num_bins = data['num_bins']
