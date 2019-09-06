@@ -278,14 +278,14 @@ def calculate_all_arrays(mof_list, num_mofs, element_pmf_results, gases):
         if mof_array == mof_array_list[0]:
             # First Array: Set up dictionary with keys
             for index in range(len(comp_set_dict)):
-                array_dict = {'%s' % ' '.join(mof_array) : single_array_pmf_results[index]}
+                array_dict = {' '.join(mof_array) : single_array_pmf_results[index]}
                 for gas in gases:
                     array_dict[gas] = float(comp_set_dict[index][gas])
                 all_array_pmf_results.extend([array_dict])
         else:
             # Not First Array: Update Dictionary
             for index in range(len(comp_set_dict)):
-                all_array_pmf_results[index]['%s' % ' '.join(mof_array)] = single_array_pmf_results[index]
+                all_array_pmf_results[index][' '.join(mof_array)] = single_array_pmf_results[index]
 
     return mof_array_list, all_array_pmf_results
 
@@ -366,7 +366,7 @@ def bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results):
         # Loops through all of the bins and takes sum over all pmfs in that bin.
         all_bins_temp_sum = []
         all_bins_temp_max = []
-        array_names = ['%s' % ' '.join(array) for array in list_of_arrays]
+        array_names = [' '.join(array) for array in list_of_arrays]
         for bin in bins[0:len(bins)-1]:
             array_pmfs_temp = {array: [] for array in array_names}
             for row in all_array_pmf_results:
@@ -410,7 +410,7 @@ def calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_pro
     array_kld_results = []
     for array in list_of_arrays:
         dict_temp = {'MOF_Array' : array}
-        array_name = '%s' % ' '.join(array)
+        array_name = ' '.join(array)
 
         # Calculate Absolute KLD
         pmfs_per_array_abs = [row[array_name] for row in all_array_pmf_results]
@@ -503,7 +503,7 @@ def assign_array_ids(list_of_arrays):
             i = 1
             num_elements = len(array)
         array_id = str(num_elements)+'-'+str(i)
-        array_name = '%s' % ' '.join(array)
+        array_name = ' '.join(array)
         array_id_dict[array_name] = array_id
 
     filename = 'array_id_list.csv'
@@ -549,7 +549,7 @@ def save_unbinned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, all_a
         comps_to_save_alt.append(np.transpose([row[gas] for gas in gases]))
 
     for array in list_of_arrays:
-        array_name = '%s' % ' '.join(array)
+        array_name = ' '.join(array)
         pmfs_to_save = [{'PMF': row[array_name]} for row in all_array_pmf_results]
         pmfs_to_save_alt = [[row[array_name]] for row in all_array_pmf_results]
         filename = "saved_array_pmfs_unbinned/%s/%s.csv" % (timestamp, str(list_of_array_ids[array_name]))
@@ -581,7 +581,7 @@ def save_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, b
     for gas in gases:
         comps_to_save = [bin[gas] for bin in bins][0:len(bins)-1]
         for array in list_of_arrays:
-            array_name = '%s' % ' '.join(array)
+            array_name = ' '.join(array)
             pmfs_to_save = [row[array_name] for row in binned_probabilities if '%s bin' % gas in row.keys()]
             pdfs_to_save = len(comps_to_save) * np.array(pmfs_to_save)
             filename = "saved_array_pmfs_binned/%s/%s_%s.csv" % (timestamp, str(list_of_array_ids[array_name]), gas)
@@ -606,7 +606,7 @@ def plot_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, b
     os.makedirs('saved_array_pmfs_binned_figures/%s' % timestamp)
 
     # Generate the plots
-    array_names = ['%s' % ' '.join(array) for array in list_of_arrays]
+    array_names = [' '.join(array) for array in list_of_arrays]
     for gas in gases:
         for array in array_names:
             # X-axis, list of mole fracs to plot, for relevant gas
