@@ -508,7 +508,7 @@ def assign_array_ids(list_of_arrays):
         for key, val in array_id_dict.items():
             writer.writerow([val, key])
 
-    return(array_id_dict)
+    return array_id_dict
 
 def save_element_pmf_data(element_pmf_results, stdev, mrange, timestamp):
     """
