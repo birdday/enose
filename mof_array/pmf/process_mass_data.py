@@ -494,7 +494,6 @@ def assign_array_ids(list_of_arrays):
     for array in list_of_arrays:
         if num_elements == len(array):
             i += 1
-            num_elements = num_elements
         else:
             i = 1
             num_elements = len(array)
