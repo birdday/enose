@@ -1,56 +1,91 @@
 #!/usr/bin/env python
+
+# --------------------------------------------------
+# ----- Import Python Packages ---------------------
+# --------------------------------------------------
 import sys
 import pandas as pd
 from datetime import datetime
-from mof_array.pmf.process_mass_data import (read_output_data,
-                                            yaml_loader,
-                                            write_output_data,
-                                            import_experimental_results,
-                                            import_simulated_data,
-                                            calculate_pmf,
-                                            create_bins,
-                                            bin_compositions,
-                                            array_pmf,
-                                            plot_binned_pmf_array,
-                                            save_array_pmf_data,
-                                            save_raw_pmf_data,
-                                            information_gain,
-                                            choose_best_arrays)
+from mof_array.pmf.process_mass_data import (
+    read_data_as_dict,
+    write_data_as_tabcsv,
+    yaml_loader,
+    import_experimental_data,
+    import_simulated_data,
+    calculate_element_pmf,
+    calculate_all_arrays,
+    create_bins,
+    bin_compositions,
+    calculate_kld,
+    choose_arrays,
+    assign_array_ids,
+    save_element_pmf_data,
+    save_unbinned_array_pmf_data,
+    save_binned_array_pmf_data,
+    plot_binned_array_pmf_data)
 
-all_results_import = read_output_data(sys.argv[1])
-experimental_mass_import = read_output_data(sys.argv[2])
+# --------------------------------------------------
+# ----- Import RASPA Data and yaml File ------------
+# --------------------------------------------------
+# Redefine system arguments
+# sim_data = sys.argv[1]
+# exp_data = sys.argv[2]
+sim_data = 'ALL_MOFS.csv'
+exp_data = 'exp_data_175.csv'
 
-filepath = 'settings/process_config.yaml'
+# Import results as dictionary
+sim_results_import = read_data_as_dict(sim_data)
+exp_results_import = read_data_as_dict(exp_data)
+
+# Import yaml file as dictoncary
+filepath = 'settings/process_config.sample.yaml'
 data = yaml_loader(filepath)
 
-mof_array = data['mof_array']
-mof_densities_import = {}
-mof_experimental_mass = {}
-
-for mof in mof_array:
-    mof_densities_import.copy()
-    mof_densities_import.update({ mof : data['mofs'][mof]['density']})
-
+# Redefine key variables in yaml file
+num_mofs = data['number_mofs']
 num_mixtures = data['num_mixtures']
+num_bins = data['num_bins']
+num_best_worst = data['num_best_worst']
 stdev = data['stdev']
 mrange = data['mrange']
 gases = data['gases']
-number_mofs = data['number_mofs']
-number_bins = data['number_bins']
+mof_list = data['mof_list']
+mof_densities = {}
+for mof in mof_list:
+    mof_densities.copy()
+    mof_densities.update({ mof : data['mofs'][mof]['density']})
 
-experimental_mass_results, experimental_mass_mofs, experimental_mofs = import_experimental_results(mof_array, experimental_mass_import, mof_densities_import, gases)
-import_data_results = import_simulated_data(experimental_mofs, all_results_import, mof_densities_import, gases)
-calculate_pmf_results = calculate_pmf(experimental_mass_results, import_data_results, experimental_mofs, stdev, mrange)
-array_pmf_results, list_of_arrays = array_pmf(gases, number_mofs, experimental_mofs, calculate_pmf_results, experimental_mass_mofs)
-create_bins_results = create_bins(experimental_mofs, calculate_pmf_results, gases, number_bins)
-bin_compositions_results = bin_compositions(gases, list_of_arrays, create_bins_results, array_pmf_results, experimental_mass_mofs)
-kl_divergence = information_gain(gases, list_of_arrays, bin_compositions_results, create_bins_results)
-ordered_by_kld_product, ordered_by_gas, all_arrays_ranked = choose_best_arrays(gases, number_mofs, kl_divergence)
+# --------------------------------------------------
+# ----- Calculate arrays, PMFs, KLDs, etc. ---------
+# --------------------------------------------------
+# N.B. Parentheses are only necessary for implicit line continuation
+exp_results_full, exp_results_mass, exp_mof_list = \
+    import_experimental_data(exp_results_import, mof_list, mof_densities, gases)
+sim_results_full = \
+    import_simulated_data(sim_results_import, mof_list, mof_densities, gases)
+element_pmf_results = \
+    calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange)
+list_of_arrays, all_array_pmf_results = \
+    calculate_all_arrays(mof_list, num_mofs, element_pmf_results, gases)
+bins = \
+    create_bins(gases, num_bins, mof_list, element_pmf_results)
+binned_probabilities_sum, binned_probabilities_max = \
+    bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results)
+array_kld_results = \
+    calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_probabilities_sum)
+best_and_worst_arrays_by_absKLD, best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD = \
+    choose_arrays(gases, num_mofs, array_kld_results, num_best_worst)
 
-pmf_results_df = pd.DataFrame(data=array_pmf_results)
-save_raw_pmf_data(pmf_results_df, stdev, mrange, min(number_mofs))
-plot_binned_pmf_array(gases, list_of_arrays, create_bins_results, bin_compositions_results)
-save_array_pmf_data(gases, list_of_arrays, create_bins_results, bin_compositions_results)
-write_output_data('saved_results/ordered_by_gas_%s.csv' % (datetime.now().strftime("%Y_%m_%d__%H_%M_%S")), ordered_by_gas)
-write_output_data('saved_results/ordered_by_kld_product_%s.csv' % (datetime.now().strftime("%Y_%m_%d__%H_%M_%S")), ordered_by_kld_product)
-write_output_data('saved_results/all_arrays_ranked_%s.csv' % (datetime.now().strftime("%Y_%m_%d__%H_%M_%S")), all_arrays_ranked)
+# --------------------------------------------------
+# ----- Choose what to save ------------------------
+# --------------------------------------------------
+element_pmf_results_df = pd.DataFrame(data=element_pmf_results)
+list_of_array_ids = assign_array_ids(list_of_arrays)
+timestamp = (datetime.now().strftime("%Y_%m_%d__%H_%M_%S"))
+save_element_pmf_data(element_pmf_results_df, stdev, mrange, timestamp)
+save_unbinned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, all_array_pmf_results, timestamp)
+save_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, binned_probabilities_sum, timestamp)
+plot_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, binned_probabilities_sum, timestamp)
+write_data_as_tabcsv('saved_array_kld/best_and_worst_arrays_by_absKLD_%s.csv' % timestamp, best_and_worst_arrays_by_absKLD)
+write_data_as_tabcsv('saved_array_kld/best_and_worst_arrays_by_jointKLD_%s.csv' % timestamp, best_and_worst_arrays_by_jointKLD)
+write_data_as_tabcsv('saved_array_kld/best_and_worst_arrays_by_gasKLD_%s.csv' % timestamp, best_and_worst_arrays_by_gasKLD)
