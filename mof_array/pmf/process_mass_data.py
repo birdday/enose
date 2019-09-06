@@ -51,21 +51,21 @@ the same keyword whenever the argument was the same for clarity.
 # --------------------------------------------------
 import copy
 import csv
-import numpy as np
 import operator
 import os
-import pandas as pd
-import scipy.interpolate as si
-import scipy.stats as ss
 import sys
-import yaml
-
 from datetime import datetime
 from functools import reduce
 from itertools import combinations
 from math import isnan, log
-from matplotlib import pyplot as plt
 from random import random
+
+import numpy as np
+import pandas as pd
+import scipy.interpolate as si
+import scipy.stats as ss
+import yaml
+from matplotlib import pyplot as plt
 from scipy.spatial import Delaunay
 from scipy.interpolate import spline
 
@@ -541,7 +541,9 @@ def save_unbinned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, all_a
     comps_to_save_alt =[]
     for row in all_array_pmf_results:
         comps_to_save.append([{'%s' % gas: row[gas]} for gas in gases])
-        comps_to_save_alt.append(np.transpose([row[gas] for gas in gases]))
+        comps_to_save_alt.append([row[gas] for gas in gases])
+        # Alt form of compositons saves them in array rather than dictionary form. Order is thus
+        # hard-coded, but its slightly easier to work with later for plotting purposes.
 
     for array in list_of_arrays:
         array_name = ' '.join(array)
