@@ -486,7 +486,7 @@ def assign_array_ids(list_of_arrays):
     """
     Assign numbers to each array for shorthand notation
     Can probably be written better to make enumerating less dependent on how the passed in list is ordered.
-    Will save this for suture updates, since it currently works without issue.
+    Will save this for future updates, since it currently works without issue.
     """
     array_id_dict = {}
     i = 0
