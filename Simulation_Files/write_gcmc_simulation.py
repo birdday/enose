@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
+
+# N.B. This file is effectively replced by write_compositions.py. Delete when confident it's no longer needed.
 import os
 import sys
 import csv
+from datetime import datetime
+
+import sjs
 
 from jobserver_utils import generate_unique_run_name
-import sjs
-from datetime import datetime
-from mof_array.sim.sensor_array_mof_adsorption import (read_composition_configuration,
-                                                      read_mof_configuration,
-                                                      run_composition_simulation)
+from sensor_array_mof_adsorption import (read_composition_configuration,
+    read_mof_configuration, run_composition_simulation)
 
 mofs_filepath = sys.argv[1]
 gas_comps_filepath = sys.argv[2]
