@@ -16,9 +16,6 @@ from collections import OrderedDict
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 
-from generate_compositions import create_uniform_comp_list
-from henrys_coefficient_analysis import read_kH_results
-
 import time
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -1013,3 +1010,116 @@ def composition_prediction_algorithm_new(array, henrys_data, gases, comps, spaci
             print('\tSubdividing Grid...\n')
             spacing = [value*0.5 for value in spacing]
             comps = subdivide_grid_from_array(filtered_comps, gases, spacing)
+
+
+def create_uniform_comp_list(gases, gas_limits, spacing, filename=None, imply_final_gas_range=True, imply_final_gas_spacing=False, filter_for_1=True, round_at=None):
+    """
+    Function used to create a tab-delimited csv file of gas compositions for a set of gases with a
+    range of compositions. The compositions of the final gas in the list is calculated so that the
+    total mole fraction of the system is equal to 1 by default. This is true even if the composition
+    is supplied, however this behavior can be turned off, in which case the list will contain only
+    compositions in the given range which total to 1.
+    """
+
+    # Calculate the valid range of compositions for the final gas in the list.
+    if len(gases) == len(gas_limits)+1:
+        lower_limit_lastgas = 1-np.sum([limit[1] for limit in gas_limits])
+        if lower_limit_lastgas < 0:
+            lower_limit_lastgas = 0
+        upper_limit_lastgas = 1-np.sum([limit[0] for limit in gas_limits])
+        if upper_limit_lastgas > 1:
+            upper_limit_lastgas = 1
+        gas_limits_new = [limit for limit in gas_limits]
+        gas_limits_new.append([lower_limit_lastgas, upper_limit_lastgas])
+    elif len(gases) == len(gas_limits):
+        if imply_final_gas_range == True:
+            lower_limit_lastgas = 1-np.sum([limit[1] for limit in gas_limits[:-1]])
+            if lower_limit_lastgas < 0:
+                lower_limit_lastgas = 0
+            upper_limit_lastgas = 1-np.sum([limit[0] for limit in gas_limits[:-1]])
+            if upper_limit_lastgas > 1:
+                upper_limit_lastgas = 1
+            gas_limits_new = [limit for limit in gas_limits[:-1]]
+            gas_limits_new.append([lower_limit_lastgas, upper_limit_lastgas])
+        else:
+            gas_limits_new = gas_limits
+
+    # Determine the number of points for each gas for the given range and spacing.
+    if len(spacing) == 1:
+        number_of_values = [(limit[1]-limit[0])/spacing+1 for limit in gas_limits_new]
+        number_of_values_as_int = [int(value) for value in number_of_values]
+        if number_of_values != number_of_values_as_int:
+            print('Bad combination of gas limits and spacing! Double check output file.')
+        comps_by_gas = [np.linspace(gas_limits_new[i][0], gas_limits_new[i][1], number_of_values_as_int[i]) for i in range(len(gas_limits_new))]
+        all_comps = list(itertools.product(*comps_by_gas))
+
+    elif len(spacing) == len(gas_limits_new)-1:
+        number_of_values = [(gas_limits_new[i][1]-gas_limits_new[i][0])/spacing[i]+1 for i in range(len(gas_limits_new)-1)]
+        number_of_values_as_int = [int(value) for value in number_of_values]
+        comps_by_gas = [np.linspace(gas_limits_new[i][0], gas_limits_new[i][1], number_of_values_as_int[i]) for i in range(len(gas_limits_new)-1)]
+        all_comps_except_last = list(itertools.product(*comps_by_gas))
+        all_comps = []
+        for row in all_comps_except_last:
+            total = np.sum(row)
+            last_comp = 1 - total
+            if last_comp >=0 and last_comp >= gas_limits_new[-1][0] and last_comp <= gas_limits_new[-1][1]:
+                row += (last_comp,)
+            all_comps.extend([row])
+
+    elif len(spacing) == len(gas_limits_new):
+        number_of_values = np.round([(gas_limits_new[i][1]-gas_limits_new[i][0])/spacing[i]+1 for i in range(len(gas_limits_new))], 5)
+        number_of_values_as_int = [int(value) for value in number_of_values]
+        if imply_final_gas_spacing == True:
+            comps_by_gas = [np.linspace(gas_limits_new[i][0], gas_limits_new[i][1], number_of_values_as_int[i]) for i in range(len(gas_limits_new)-1)]
+            all_comps_except_last = list(itertools.product(*comps_by_gas))
+            all_comps = []
+            for row in all_comps_except_last:
+                total = np.sum(row)
+                last_comp = 1 - total
+                if last_comp >=0 and last_comp >= gas_limits_new[-1][0] and last_comp <= gas_limits_new[-1][1]:
+                    row += (last_comp,)
+                all_comps.extend([row])
+        if imply_final_gas_spacing == False:
+            if False in (number_of_values == number_of_values_as_int):
+                print('Bad combination of gas limits and spacing! Double check output file.')
+            comps_by_gas = [np.linspace(gas_limits_new[i][0], gas_limits_new[i][1], number_of_values_as_int[i]) for i in range(len(gas_limits_new))]
+            all_comps = list(itertools.product(*comps_by_gas))
+
+    # Filter out where total mole fractions != 1
+    all_comps_final = []
+    if filter_for_1 == True:
+        for row in all_comps:
+            if round_at != None:
+                row = np.round(row, round_at)
+            if np.sum(row) == 1:
+                all_comps_final.extend([row])
+    else:
+        all_comps_final = all_comps
+
+    # Write to file.
+    if filename != None:
+        with open(filename, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter='\t', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(gases)
+            writer.writerows(all_comps_final)
+
+    return comps_by_gas, all_comps_final
+
+
+def read_kH_results(filename):
+    with open(filename, newline='') as csvfile:
+        output_data = csv.reader(csvfile, delimiter="\t")
+        output_data = list(output_data)
+        full_array = []
+        for i in range(len(output_data)):
+            row = output_data[i][0]
+            row = row.replace('nan', '\'nan\'')
+            row = row.replace('inf', '\'inf\'')
+            row = row.replace('-\'inf\'', '\'-inf\'')
+            temp_array = []
+            temp_row = ast.literal_eval(row)
+            # if type(temp_row['R^2']) == str or temp_row['R^2'] < 0:
+            #     continue
+            temp_array.append(temp_row)
+            full_array.extend(temp_array)
+        return full_array

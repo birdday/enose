@@ -4,7 +4,6 @@ import numpy as np
 import os
 
 import sample_analysis as sa
-from generate_compositions import create_uniform_comp_list
 
 
 # ========= TEST SECTION ==========
@@ -86,10 +85,10 @@ mof_list = mof_list_filtered
 # ----- Create initial grid of points as a dictionary -----
 if algorithm_type == 'scipy':
     gases_w_air = gases+['Air']
-    comps_by_component, comps_raw = create_uniform_comp_list(gases_w_air, init_composition_limits, init_composition_spacing, imply_final_gas_range=False, filter_for_1=False, round_at=None)
+    comps_by_component, comps_raw = sa.create_uniform_comp_list(gases_w_air, init_composition_limits, init_composition_spacing, imply_final_gas_range=False, filter_for_1=False, round_at=None)
     comps_as_dict = sa.comps_to_dict(comps_raw, gases)
 elif algorithm_type == 'tensorflow':
-    comps_by_component, comps_raw = create_uniform_comp_list(gases, init_composition_limits, init_composition_spacing, imply_final_gas_range=False, filter_for_1=False, round_at=None)
+    comps_by_component, comps_raw = sa.create_uniform_comp_list(gases, init_composition_limits, init_composition_spacing, imply_final_gas_range=False, filter_for_1=False, round_at=None)
     comps_as_dict = sa.comps_to_dict(comps_raw, gases)
 
 # ----- Determine array if necessary -----
