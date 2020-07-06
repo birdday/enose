@@ -8,6 +8,7 @@ import itertools
 import matplotlib
 import numpy as np
 import os
+import random
 import re
 import scipy.stats as ss
 import yaml
@@ -1123,3 +1124,29 @@ def read_kH_results(filename):
             temp_array.append(temp_row)
             full_array.extend(temp_array)
         return full_array
+
+
+def invert_matrix(array):
+    if np.shape(array)[0] == np.shape(array)[1]:
+        inv = np.linalg.inv(array)
+    else:
+        inv = np.linalg.pinv(array)
+
+    return inv
+
+
+def analytical_solution(array, gases, henrys_data_array, breath_sample_masses, added_error=None):
+    pure_air_masses = [henrys_data_array[mof]['Pure Air Mass'] for mof in array]
+    m_prime = [breath_sample_masses[i] - pure_air_masses[i] for i in range(len(breath_sample_masses))]
+    henrys_matrix = [[henrys_data_array[mof][gas+'_kH'] for gas in gases] for mof in array]
+
+    array_inv = invert_matrix(henrys_matrix)
+    if added_error == None or added_error == 0:
+        m_prime_new = m_prime
+    else:
+        m_prime_new = [value + random.uniform(-1,1)*1e-4 for value in m_prime]
+
+    soln = np.matmul(array_inv, m_prime_w_error)
+    soln_in_dict_format = {gases[i]+'_comp':soln[i] for i in range(len(gases))}
+
+    return soln_in_dict_format
