@@ -249,14 +249,19 @@ def calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, s
     element_norm_factors = 1/np.sum(element_pmfs, axis=0)
     element_pmfs_normalized = np.multiply(element_norm_factors, element_pmfs)
 
-    array_pmfs = np.prod(element_pmfs_normalized, axis=1)
-    array_norm_factor = 1/np.sum(array_pmfs, axis=0)
-    array_pmfs_normalized = np.multiply(array_norm_factor, array_pmfs)
+    # nnepmf = non-normalized element pmfs
+    # nepmf = normalized element pmfs
+    array_pmfs_nnepmf = np.prod(element_pmfs, axis=1)
+    array_pmfs_nepmf = np.prod(element_pmfs_normalized, axis=1)
+    array_norm_factor = 1/np.sum(array_pmfs_nepmf, axis=0)
+    array_pmfs_normalized = np.multiply(array_norm_factor, array_pmfs_nepmf)
 
+    array_pmfs_nnepmf_sorted = sorted(array_pmfs_nnepmf, reverse=True)
     array_pmfs_normalized_sorted = sorted(array_pmfs_normalized, reverse=True)
     sorted_indicies = list(reversed(np.argsort(array_pmfs_normalized)))
+    # sorted_indicies are NOT necessarily the same between nnempf_sorted and normalized_sorted since the elements are essentially given different "weights" by not normalizing their total probabilities.
 
-    return element_pmfs_normalized, array_pmfs_normalized, array_pmfs_normalized_sorted, sorted_indicies
+    return element_pmfs, element_pmfs_normalized, array_pmfs_nnepmf, array_pmfs_nnepmf_sorted, array_pmfs_normalized, array_pmfs_normalized_sorted, sorted_indicies
 
 
 def subdivide_grid_from_dict(array_pmf_sorted, gases, spacing):
@@ -940,6 +945,9 @@ def composition_prediction_algorithm_new(array, henrys_data, gases, comps, spaci
     final_comp_set = {gas:[] for gas in gases}
     convergence_status = {gas: False for gas in gases if gas !='Air'}
 
+    all_array_pmfs_nnempf = []
+    all_array_pmfs_normalized = []
+
     # Record Initial Composition Range
     for i in range(len(gases)):
         #Get min/max component mole frac
@@ -964,9 +972,14 @@ def composition_prediction_algorithm_new(array, henrys_data, gases, comps, spaci
 
         print('\tCalculating Element / Array Probability')
         # start_time = time.time()
-        element_pmfs_normalized, array_pmfs_normalized, array_pmfs_normalized_sorted, sorted_indicies = calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, std_dev=std_dev)
+        _, element_pmfs_normalized, array_pmfs_nnepmf, array_pmfs_nnepmf_sorted, array_pmfs_normalized, array_pmfs_normalized_sorted, sorted_indicies = calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, std_dev=std_dev)
         # elapsed_time = time.time() - start_time
         # print('\t\tt =',elapsed_time,' s')
+
+        # Log array_pmfs
+        # Potentially a memory-hogging step which will need to use a temporary file to write to and read from.
+        all_array_pmfs_nnempf.extend([array_pmfs_nnepmf_sorted])
+        all_array_pmfs_normalized.extend([array_pmfs_normalized_sorted])
 
         # Filter Out Low-Probability Compositions
         print('\tFiltering Low-probability Compositions.')
@@ -1006,7 +1019,7 @@ def composition_prediction_algorithm_new(array, henrys_data, gases, comps, spaci
 
             print('Converged - Exiting!\n\n')
 
-            return final_comp_set, exit_condition, cycle_nums, all_comp_sets, element_pmfs_normalized, array_pmfs_normalized
+            return final_comp_set, exit_condition, cycle_nums, all_comp_sets, all_array_pmfs_nnempf, all_array_pmfs_normalized
 
         else:
             print('\tSubdividing Grid...\n')

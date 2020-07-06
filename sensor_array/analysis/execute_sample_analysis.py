@@ -178,7 +178,7 @@ for sample_type in sample_types:
         if algorithm_type == 'scipy':
             final_comp_set, exit_condition, cycle_nums, all_comp_sets, _, _  = sa.composition_prediction_algorithm(array, henrys_data_array, gases_temp, comps, init_composition_spacing, convergence_limits, breath_sample, num_cycles=num_cycles, pmf_convergence=1, fraction_to_keep=fraction_to_keep, error_type='fixed', error_amount=error_amount_for_pmf)
         elif algorithm_type == 'tensorflow':
-            final_comp_set, exit_condition, cycle_nums, all_comp_sets, _, _  = sa.composition_prediction_algorithm_new(array, henrys_data_array, gases, comps, init_composition_spacing, convergence_limits, breath_sample_masses, num_cycles=num_cycles, fraction_to_keep=fraction_to_keep, std_dev=error_amount_for_pmf)
+            final_comp_set, exit_condition, cycle_nums, all_comp_sets, all_array_pmfs_nnempf, all_array_pmfs_normalized  = sa.composition_prediction_algorithm_new(array, henrys_data_array, gases, comps, init_composition_spacing, convergence_limits, breath_sample_masses, num_cycles=num_cycles, fraction_to_keep=fraction_to_keep, std_dev=error_amount_for_pmf)
 
         # Write Final Results to File
         if i == 0:
