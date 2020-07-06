@@ -5,6 +5,7 @@ import copy
 import csv
 import glob
 import itertools
+import math
 import matplotlib
 import numpy as np
 import os
@@ -1150,3 +1151,34 @@ def analytical_solution(array, gases, henrys_data_array, breath_sample_masses, a
     soln_in_dict_format = {gases[i]+'_comp':soln[i] for i in range(len(gases))}
 
     return soln_in_dict_format
+
+
+def calculate_KLD_for_cycle(array_pmfs):
+    # This function requires NORMALIZED pmf values.
+
+    num_points = len(array_pmfs)
+    kld_max = math.log2(num_points)
+    kld = sum( [float(pmf)*math.log2(float(pmf)*num_points) for pmf in array_pmfs if pmf != 0] )
+    kld_norm = kld/kld_max
+
+    return kld_norm
+
+
+def calculate_p_max(num_elements, stddev):
+    # This will be a (very close) approximations of p_max, since it is a truncated normal, and thus the value at the mean could change slightly subject to the contraint that the area under the curve, which goes to infinity, is exactly 1.
+    distributions = tfp.distributions.TruncatedNormal(100, stddev, 0, np.inf)
+    element_pmf_max = distributions.prob(100)
+    array_pmf_max = element_pmf_max ** num_elements
+
+    return array_pmf_max
+
+
+def calculate_p_ratio(array_pmfs_sorted, p_max):
+    """
+    As long as each sensing element has a known associated std. dev. which is independent of composition, the maximum probability which could be assigned to a single point can be determined by mutliplyinf the individual max probabilities for each element. Thus, we can determine the ratio of the assigned probability of the maximum probability and use this as a metric to see how the predicition is improving.
+
+    May need to adjust earlier function to report non-normalized element and/or array pmf.
+    """
+    all_p_ratios = [p_i/p_max for p_i in array_pmfs_sorted]
+
+    return p_ratios
