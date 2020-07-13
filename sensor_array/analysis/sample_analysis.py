@@ -265,7 +265,6 @@ def calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, s
 
 
 def subdivide_grid_from_dict(array_pmf_sorted, gases, spacing):
-
     # old_points_to_keep = array_pmf_sorted[0:int(np.ceil(len(array_pmf_sorted)*fraction_to_keep))]
     old_points_to_keep = array_pmf_sorted
     new_grid_points = []
@@ -1195,3 +1194,79 @@ def calculate_p_ratio(array_pmfs_sorted, p_max):
     all_p_ratios = [p_i/p_max for p_i in array_pmfs_sorted]
 
     return p_ratios
+
+
+def plot_kld_progression_w_max_pmf(all_array_pmfs_nnempf, all_array_pmfs_normalized, cycle_nums, figname=None):
+    colors = mpl.cm.get_cmap('RdBu')
+    color0 = colors(0.80)
+    color1 = colors(0.20)
+
+    # Calculate KLD Values for each cycle
+    kld_values = []
+    for i in range(len(all_array_pmfs_normalized)):
+        kld = calculate_KLD_for_cycle(all_array_pmfs_normalized[i])
+        kld_values.extend([kld])
+
+    # Set up x/y data
+    x_data = cycle_nums[1::]
+    y_data = kld_values
+
+    # Prepare Plot
+    plt.figure(figsize=(5.5,4.5), dpi=300)
+    plt.rcParams['font.size'] = 12
+    plt.title('KLD and Probability', fontsize=16)
+    plt.xlabel('Cycle Number', fontsize=16)
+    xticks = [i for i in range(len(cycle_nums)) if i % 2==0]
+    plt.xticks(xticks, fontsize=12)
+
+    # KLD Data / Axis
+    plt.ylabel('Normalized KLD', fontsize=16, color=color0)
+    plt.yticks(fontsize=12, color=color0)
+    plt.ylim([1e-18,2])
+    # plt.ticklabel_format(axis="y", style="sci", scilimits=(-1,3), useMathText=True)
+    plt.semilogy(x_data, y_data, '-o', color=color0, label='Cycle KLD')
+
+    # PMF Data / Axis
+    plt.twinx()
+
+    y_data = [row[0] for row in all_array_pmfs_nnempf]
+    plt.semilogy(x_data, y_data, '-o', color=color1, label='Cycle Max. PMF Value')
+
+    plt.ylabel('Max. Semi-Normalized\nPMF Value', fontsize=16, color=color1)
+    plt.yticks([0.999, 1.0], fontsize=12, color=color1, rotation=90, va='center')
+    plt.ylim([0.998,1.0002])
+    # plt.ticklabel_format(axis="y", style="sci", scilimits=(-1,3), useMathText=True)
+
+    # plt.legend(fontsize=12, bbox_to_anchor=(0.5,-0.15), loc='upper center', ncol=2)
+    plt.tight_layout()
+    plt.savefig(figname+'KLD_vs_cycle.png')
+    plt.close()
+
+
+def plot_all_array_pmf(all_array_pmfs_nnempf, figname=None):
+    # colors = mpl.cm.get_cmap('viridis')
+    # colors_vect = colors(np.linspace(0,1,len(all_array_pmfs_nnempf)))
+    colors = mpl.cm.get_cmap('RdBu')
+    color0 = colors(0.80)
+    color1 = colors(0.20)
+
+    plt.figure(figsize=(4.5,4.5), dpi=300)
+    plt.rcParams['font.size'] = 12
+    plt.title('Semi-Normalized Array Probability', fontsize=16)
+    plt.xlabel('Array PMF\nfrom Largest to Smallest', fontsize=16)
+    plt.xticks([])
+
+    for i in range(len(all_array_pmfs_nnempf)):
+        y_data = all_array_pmfs_nnempf[i]
+        x_data = np.linspace(0,100,len(y_data))
+        plt.semilogy(x_data, y_data, label='Cycle '+str(i+1), color=color0)
+    plt.ylim([1e-2,5])
+
+    plt.ylabel('Semi-Normalized PMF', fontsize=16)
+    plt.yticks(fontsize=12)
+    # plt.ticklabel_format(axis="y", style="sci", scilimits=(-1,3), useMathText=True)
+
+    plt.legend(fontsize=12, bbox_to_anchor=(0.5,-0.15), loc='upper center', ncol=4)
+    plt.tight_layout() #rect=(0,0.05,1,1)
+    plt.savefig(figname+'ArrayPMF_vs_Cycle.png')
+    plt.close()

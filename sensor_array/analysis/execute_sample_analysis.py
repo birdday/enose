@@ -39,7 +39,7 @@ Overall Procedure:
 
 # ===== Load Relevant Information =====
 # config_file = mofs_filepath = sys.argv[1]
-config_file = 'config_files/sample_analysis_config.yaml'
+config_file = 'config_files/sample_analysis_config_tests.yaml'
 data = sa.yaml_loader(config_file)
 
 materials_config_file = data['materials_config_filepath']
@@ -180,6 +180,7 @@ for sample_type in sample_types:
         elif algorithm_type == 'tensorflow':
             final_comp_set, exit_condition, cycle_nums, all_comp_sets, all_array_pmfs_nnempf, all_array_pmfs_normalized  = sa.composition_prediction_algorithm_new(array, henrys_data_array, gases, comps, init_composition_spacing, convergence_limits, breath_sample_masses, num_cycles=num_cycles, fraction_to_keep=fraction_to_keep, std_dev=error_amount_for_pmf)
 
+
         # Write Final Results to File
         if i == 0:
             with open(results_fullpath, 'w', newline='') as csvfile:
@@ -224,6 +225,14 @@ for sample_type in sample_types:
         filepath_for_this_figure = full_sample_filepath
         sa.plot_algorithm_progress_single_samples(gases, all_comp_sets, true_comp, cycle_nums, run_id, filepath_for_this_figure)
 
+        # Analyze Probability / KLD
+        # This step is incredibly slow due to the RAM needs of large arrays - Need to add a file which we write to / read for the array_pmf values to speed up whti process.
+        # Also need to add plot limits
+        norm_factor = sa.calculate_p_max(len(array), error_amount_for_pmf)
+        all_array_pmfs_nnempf_mod = [[value/norm_factor for value in row] for row in all_array_pmfs_nnempf]
+        sa.plot_kld_progression_w_max_pmf(all_array_pmfs_nnempf_mod, all_array_pmfs_normalized, cycle_nums, figname=full_sample_filepath)
+        sa.plot_all_array_pmf(all_array_pmfs_nnempf_mod, figname=full_sample_filepath)
+
 
     # ----- Reload saved results -----
     results_fullpath = results_filepath+'breath_sample_prediciton_'+sample_type+'.csv'
@@ -236,3 +245,10 @@ for sample_type in sample_types:
     gas_limits_as_dict = {gas: gases_full[gas]['init_composition_limits'] for gas in gases}
     sa.plot_predicted_vs_true_for_all_breath_samples(gases, gas_limits_as_dict, predicted_comps, true_comps, filepath=results_filepath+folder, sort_data=True, sort_by='ammonia')
     sa.plot_prediction_error_for_all_breath_samples(gases, predicted_comps, true_comps, filepath=results_filepath+folder)
+
+
+
+# Write a function which keeps track of all compositions, bin them in the end and calculate KLD?
+# Need to do this on a component basis
+# NON BOUNDED LIKELIHOOD VALUE, NORMALIZE ONLY AFTER ENTIRE RUN IS COMPLETE, THEN BIN, THEN REUSE KLD
+# Would need to eliminate double counted points (i.e. anything retained for 2+ cycles)
