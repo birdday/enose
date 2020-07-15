@@ -391,6 +391,16 @@ def calculate_array_pmf(mof_array, element_pmf_results):
     return single_array_pmf_results
 
 
+def calculate_all_arrays_list(mof_list, num_mofs):
+    mof_array_list = []
+    array_size = min(num_mofs)
+    while array_size <= max(num_mofs):
+        mof_array_list.extend(list(combinations(mof_list, array_size)))
+        array_size += 1
+
+    return mof_array_list
+
+
 def calculate_all_arrays(mof_list, num_mofs, element_pmf_results, gases):
     """
     ----- Calculates all possible arrays and corresponding pmfs ----
@@ -472,6 +482,57 @@ def create_bins(gases, num_bins, mof_list, element_pmf_results):
 
     return bins
 
+
+def create_comp_set_dict(element_pmf_results, mof_list):
+    comp_set_dict = [row for row in element_pmf_results if row['MOF'] == mof_list[0]]
+    return comp_set_dict
+
+
+def bin_compositions_single_array(gases, bins, array, single_array_pmf_results, comp_set_dict):
+    # Create a dictionary from array_pmf_results
+    array_key = ' '.join(array)
+
+    array_dict = []
+    for index in range(len(comp_set_dict)):
+        array_dict_temp = {array_key : single_array_pmf_results[index]}
+        for gas in gases:
+            array_dict_temp[gas] = float(comp_set_dict[index][gas])
+        array_dict.append(array_dict_temp)
+
+    # Loop through dictionary and assign bins
+    for gas in gases:
+        for row in array_dict:
+            for i in range(1,len(bins)):
+                lower_bin = bins[i-1][gas]
+                upper_bin = bins[i][gas]
+                gas_comp = float(row[gas])
+                if gas_comp >= lower_bin and gas_comp < upper_bin:
+                    row['%s bin' % gas] = lower_bin
+
+    # Loops through all of the bins and takes sum over all pmfs in that bin.
+    binned_probabilities_sum = []
+    for gas in gases:
+        all_bins_temp_sum = []
+        for bin in bins[0:len(bins)-1]:
+            pmfs_temp = []
+            for row in array_dict:
+                if bin[gas] == row['%s bin' % gas]:
+                    pmfs_temp.append(row[array_key])
+
+            single_bin_temp = {'%s bin' % gas : bin[gas]}
+            with_sum = copy.deepcopy(single_bin_temp)
+            if pmfs_temp == []:
+                with_sum[array_key] = 0
+            else:
+                with_sum[array_key] = sum(pmfs_temp)
+            all_bins_temp_sum.append(with_sum)
+
+        # Creates list of binned probabilities, already normalized
+        binned_probabilities_sum.extend(all_bins_temp_sum)
+
+    return binned_probabilities_sum, array_dict
+
+
 def bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results):
     """
     ----- Sorts pmfs into bins created by create_bins function -----
@@ -533,6 +594,30 @@ def bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results):
         binned_probabilities_max.extend(all_bins_temp_max)
 
     return binned_probabilities_sum, binned_probabilities_max
+
+
+def calculate_single_array_kld(gases, array, bins, single_array_pmf_results, binned_probabilities):
+    dict_temp = {'MOF_Array' : array}
+    array_name = ' '.join(array)
+
+    # Calculate Absolute KLD
+    reference_prob_abs = 1/len(single_array_pmf_results)
+    abs_kld = sum([float(pmf)*log(float(pmf)/reference_prob_abs,2) for pmf in single_array_pmf_results if pmf != 0])
+    dict_temp['Absolute_KLD'] = round(abs_kld,4)
+
+    # Calculate Component KLD
+    for gas in gases:
+        reference_prob_comp = 1/len(bins)
+        pmfs_per_array_comp = [row[array_name] for row in binned_probabilities if '%s bin' % gas in row.keys()]
+        kld_comp = sum([float(pmf)*log(float(pmf)/reference_prob_comp,2) for pmf in pmfs_per_array_comp if pmf != 0])
+        dict_temp['%s KLD' % gas] = round(kld_comp,4)
+
+    # Calculate Joint KLD
+    product_temp = reduce(operator.mul, [dict_temp['%s KLD' % gas] for gas in gases], 1)
+    dict_temp['Joint_KLD'] = product_temp
+    dict_temp['Array_Size'] = len(dict_temp['MOF_Array'])
+
+    return dict_temp
 
 
 def calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_probabilities):
