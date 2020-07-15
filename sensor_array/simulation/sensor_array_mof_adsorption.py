@@ -32,12 +32,11 @@ def read_mof_configuration_csv(filename):
     for i in mofs_uc_csv:
         mofs_uc.append(i)
     openfile.close()
-    s = " "
     mofs = []
     unit_cells = []
     for i in range(len(mofs_uc)):
         mofs.append(mofs_uc[i][0])
-        unit_cells.append(s.join(mofs_uc[i][1:]))
+        unit_cells.append(" ".join(mofs_uc[i][1:]))
     return mofs, unit_cells
 
 
