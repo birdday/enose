@@ -65,9 +65,11 @@ import pandas as pd
 import scipy.interpolate as si
 import scipy.stats as ss
 import yaml
+import matplotlib
 from matplotlib import pyplot as plt
 from scipy.spatial import Delaunay
 from scipy.interpolate import spline
+import ternary
 
 # --------------------------------------------------
 # ----- User-defined Python Functions --------------
@@ -564,6 +566,155 @@ def save_unbinned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, all_a
             writer.writerow(header)
             for line in pmf_data_alt:
                 writer.writerow(line)
+
+
+def prepare_ternary_dict_rgba(a,b,c,z,vmin,vmax,cmap):
+    """
+    Prepare data for use with 'ternary'
+    """
+
+    color_norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+    alpha_norm = matplotlib.colors.Normalize(vmin=vmin-(vmax-vmin), vmax=vmax)
+    color_map = matplotlib.cm.get_cmap(cmap)
+
+    data_dict_rgba = dict()
+    data_dict_zval = dict()
+    for i in range(len(a)):
+        A_out = np.round(a[i]*100,3)
+        B_out = np.round(b[i]*100,3)
+        C_out = np.round(c[i]*100,3)
+        alpha = 1
+        rgba = color_map(color_norm(z[i]))[:3] + (alpha,)
+        # data_dict[(bottom, right, left)] = ()
+        data_dict_rgba[(A_out, B_out, C_out)] = (rgba)
+        data_dict_zval[(A_out, B_out, C_out)] = z[i]
+
+    return(data_dict_rgba, data_dict_zval)
+
+
+def prepare_ternary_dict_rgba_rescaled(a,b,c,z,vmin,vmax,cmap):
+    """
+    Prepare rescaled data for use with 'ternary'
+    """
+
+    rescale_sub = max([min(a), min(b), min(c)])
+    rescale_den = max([max(a)-min(a), max(b)-min(b), max(c)-min(c)])
+
+    color_norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+    color_map = matplotlib.cm.get_cmap(cmap)
+
+    data_dict_rgba = dict()
+    data_dict_zval = dict()
+    for i in range(len(a)):
+        atemp = (a[i]-min(a))/rescale_den
+        btemp = (b[i]-min(b))/rescale_den
+        ctemp = (c[i]-min(c))/rescale_den
+        A_out = np.round(atemp*100,3)
+        B_out = np.round(btemp*100,3)
+        C_out = np.round(ctemp*100,3)
+        rgba = color_map(color_norm(z[i]))
+        # data_dict[(bottom, right, left)] = ()
+        data_dict_rgba[(A_out, B_out, C_out)] = (rgba)
+        data_dict_zval[(A_out, B_out, C_out)] = z[i]
+
+    return(data_dict_rgba, data_dict_zval)
+
+
+def harper_ternary(data_dict, z, array_id, vmin, vmax, cmap, use_rgba, polygon_sf):
+    # Set image size and resolution
+    matplotlib.rcParams['figure.dpi'] = 1200
+    matplotlib.rcParams['figure.figsize'] = (3.25, 2.75)
+
+    # Initialize the Plot
+    scale = 100
+    figure, tax = ternary.figure(scale=scale)
+    tax.clear_matplotlib_ticks()
+    tax.get_axes().axis('off')
+    if use_rgba == True:
+        tax.heatmap(data_dict, style="h", use_rgba=use_rgba, colorbar=False, polygon_sf=polygon_sf)
+    elif use_rgba == False:
+        tax.heatmap(data_dict, style="dt", use_rgba=use_rgba, polygon_sf=polygon_sf)
+
+    # Set colorbar
+    # vmin = min(z)
+    # vmax = max(z)
+    color_norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+    color_map = matplotlib.cm.get_cmap(cmap)
+    sm = plt.cm.ScalarMappable(cmap=color_map, norm=color_norm)
+    sm.set_array([])
+    cbar = plt.colorbar(sm, ticks=np.linspace(0,vmax,6), fraction=0.02, format='%.1f')
+    cbar.ax.tick_params(labelsize=7)
+    # cbar.ax.set_ylabel(r'$Mass\ [mg/cm^3]$', rotation=90, fontsize=6)
+    cbar.ax.set_ylabel(r'Mass Uptake [$mg/cm^3$]', rotation=90, fontsize=9)
+
+    # Draw boundary, gridlines, and ticks
+    tax.boundary(linewidth=1.0)
+    tax.gridlines(color=(0.5, 0.5, 0.5, 0.5), multiple=100/(6*4), linewidth=0.25)
+    tax.gridlines(color=(0.5, 0.5, 0.5, 0.5), multiple=100/6, linewidth=0.5)
+    tax.ticks(axis='b', ticks=[40,50,60,70,80,90,100], linewidth=1, multiple=100/7, tick_formats='%.0f', offset = 0.021, fontsize = 7)
+    tax.ticks(axis='lr', ticks=[0,10,20,30,40,50,60], linewidth=1, multiple=100/7, tick_formats='%.0f', offset = 0.03, fontsize = 7)
+
+    # Set axis labels and title
+    title_fontsize = 9
+    axis_fontsize = 9
+    # tax.set_title("1 Mof Array: BISWEG", fontsize=title_fontsize, y=1.05)
+    # tax.right_corner_label("X", fontsize=fontsize)
+    # tax.top_corner_label("Y", fontsize=fontsize)
+    # tax.left_corner_label("Z", fontsize=fontsize)
+    tax.left_axis_label("Carbon Dioxide", fontsize=axis_fontsize, offset = 0.15)
+    tax.right_axis_label("Oxygen", fontsize=axis_fontsize, offset = 0.15)
+    tax.bottom_axis_label("Nitrogen", fontsize=axis_fontsize, offset = 0.05)
+
+    plt.savefig('/Users/brian_day/Desktop/triplots/%s.png' % array_id, bbox_inches='tight')
+    plt.close()
+    return(figure)
+
+
+def plot_element_mass_data(gases, mof_list, data, timestamp):
+    cmap = 'viridis'
+    psf = 1.05
+    CO2_points = np.array([float(row['CO2']) for row in data if row['MOF'] == mof_list[0]])
+    N2_points = np.array([float(row['N2']) for row in data if row['MOF'] == mof_list[0]])
+    O2_points = np.array([float(row['O2']) for row in data if row['MOF'] == mof_list[0]])
+
+    mass_values_minmax = []
+    mass_values_minmax = [float(row['Mass_mg/cm3']) for row in data]
+    # vmin = np.min(mass_values_minmax)
+    # vmax = np.ceil(np.max(mass_values_minmax)*1000)/1000
+
+    for mof in mof_list:
+        mass_values = np.array([float(row['Mass_mg/cm3']) for row in data if row['MOF'] == mof])
+        vmin = np.floor(np.min(mass_values)/10)*10
+        vmax = np.ceil(np.max(mass_values)/10)*10
+
+        (dict_rgba, dict_zval) = prepare_ternary_dict_rgba_rescaled(N2_points, O2_points, CO2_points, mass_values, vmin, vmax, cmap=cmap)
+        figure = harper_ternary(dict_rgba, mass_values, mof, vmin, vmax, cmap=cmap, use_rgba=True, polygon_sf=psf)
+
+
+def plot_unbinned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, all_array_pmf_results, timestamp):
+    cmap = 'viridis'
+    psf = 1.05
+    data = all_array_pmf_results
+    CO2_points = np.array([float(row['CO2']) for row in data])
+    N2_points = np.array([float(row['N2']) for row in data])
+    O2_points = np.array([float(row['O2']) for row in data])
+
+    PMF_values_minmax = []
+    for row in all_array_pmf_results:
+        for array in list_of_arrays:
+            PMF_values_minmax.extend([float(row[array]) for row in data])
+    vmin = np.min(PMF_values_minmax)
+    # vmax = np.ceil(np.max(PMF_values_minmax)*1000)/1000
+    vmax = 0.40
+
+    for array in list_of_arrays:
+        array_id = array
+        PMF_values = []
+        for row in all_array_pmf_results:
+            PMF_values = np.array([float(row[array]) for row in data])
+
+        (dict_rgba, dict_zval) = prepare_ternary_dict_rgba_rescaled(N2_points, O2_points, CO2_points, PMF_values, vmin, vmax, cmap=cmap)
+        figure = harper_ternary(dict_rgba, PMF_values, array_id, vmin, vmax, cmap=cmap, use_rgba=True, polygon_sf=psf)
 
 
 def save_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, binned_probabilities, timestamp):
