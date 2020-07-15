@@ -11,9 +11,12 @@ from datetime import datetime
 import numpy as np
 import sjs
 
-from jobserver_utils import generate_unique_run_name
-from sensor_array_mof_adsorption import read_composition_configuration, run_composition_simulation
-from sensor_array_mof_adsorption import read_gases_configuration, read_mof_configuration_csv
+from sensor_array_mof_adsorption import read_composition_configuration,
+                                        run_composition_simulation,
+                                        read_gases_configuration,
+                                        read_mof_configuration_csv,
+                                        read_pressure_configuration,
+                                        generate_unique_run_name
 
 # ----------------------------
 # ----- System Arguments -----
@@ -43,10 +46,12 @@ if job_queue is not None:
         # --- Find the correspinging mof and unit cells ---
         mof = mofs[i]
         unit_cell = unit_cells[i]
+
         # --- Generate unique output directory ---
         run_name = generate_unique_run_name()
         output_dir = 'output_' + mof + '_%s' % run_name
         os.makedirs(output_dir)
+
         # ----- Setup CSV file and write header -----
         f = open(os.path.join(output_dir, mof+'.csv'),'w',newline='')
         header = ['Run ID','MOF','Mass']
@@ -54,6 +59,7 @@ if job_queue is not None:
             header.append(gas)
         writer = csv.writer(f, delimiter='\t')
         writer.writerow(header)
+
         # --- Queue info for simulating ---
         for composition in compositions:
             run_id = run_id_number
@@ -65,10 +71,12 @@ else:
         # --- Find the correspinging mof and unit cells ---
         mof = mofs[i]
         unit_cell = unit_cells[i]
+
         # --- Generate unique output directory ---
         run_name = generate_unique_run_name()
         output_dir = 'output_' + mof + '_%s' % run_name
         os.makedirs(output_dir)
+
         # ----- Setup CSV file and write header -----
         f = open(os.path.join(output_dir, mof+'.csv'),'w',newline='')
         header = ['Run ID','MOF','Mass']
