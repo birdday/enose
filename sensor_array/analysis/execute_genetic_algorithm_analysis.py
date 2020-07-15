@@ -4,7 +4,7 @@
 import sys
 import pandas as pd
 from datetime import datetime
-from GeneticAlgorithm_BrianEdits import *
+from genetic_algorithm_analysis import *
 
 # --------------------------------------------------
 # ----- Import RASPA Data and yaml File ------------
