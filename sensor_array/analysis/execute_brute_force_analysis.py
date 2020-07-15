@@ -35,6 +35,7 @@ from brute_force_analysis import (
     plot_unbinned_array_pmf_data,
     save_binned_array_pmf_data,
     plot_binned_array_pmf_data)
+from genetic_algorithm_analysis import read_GA_results_messy
 
 # --------------------------------------------------
 # ----- Import RASPA Data and yaml File ------------
