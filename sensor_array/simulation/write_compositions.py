@@ -22,13 +22,14 @@ from sensor_array_mof_adsorption import read_composition_configuration,
 # ----- System Arguments -----
 # ----------------------------
 mofs_filepath = sys.argv[1]
-gas_comps_filepath = sys.argv[2]
+compositions_filepath = sys.argv[2]
 gases_filepath = sys.argv[3]
-pressure = sys.argv[4]
+pressures_filepath = sys.argv[4]
 
 mofs, unit_cells = read_mof_configuration_csv(mofs_filepath)
-compositions = read_composition_configuration(gas_comps_filepath)
+compositions = read_composition_configuration(compositions_filepath)
 gases = read_gases_configuration(gases_filepath)
+pressures = read_pressure_configuration(pressures_filepath)
 
 # --------------------------
 # ----- Some sjs stuff -----
@@ -61,10 +62,12 @@ if job_queue is not None:
         writer.writerow(header)
 
         # --- Queue info for simulating ---
-        for composition in compositions:
-            run_id = run_id_number
-            job_queue.enqueue(run_composition_simulation, run_id, mof, unit_cell, pressure, gases, composition, csv_writer=None, output_dir=output_dir)
-            run_id_number += 1
+        for pressure in pressures:
+            for composition in compositions:
+                run_id = run_id_number
+                job_queue.enqueue(run_composition_simulation, run_id, mof, unit_cell, pressure, gases, composition, csv_writer=None, output_dir=output_dir)
+                run_id_number += 1
+
 else:
     print("No job queue is setup. Running in serial mode here rather than on the cluster")
     for i in range(len(mofs)):
@@ -84,9 +87,11 @@ else:
             header.append(gas)
         writer = csv.writer(f, delimiter='\t')
         writer.writerow(header)
+
         # --- Queue info for simulating ---
-        for composition in compositions:
-            run_id = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
-            run_composition_simulation(run_id, mof, unit_cell, pressure, gases, composition, csv_writer=writer, output_dir=output_dir)
+        for pressure in pressures:
+            for composition in compositions:
+                run_id = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
+                run_composition_simulation(run_id, mof, unit_cell, pressure, gases, composition, csv_writer=writer, output_dir=output_dir)
 
 f.close()
