@@ -154,7 +154,7 @@ def add_random_gas(gases, comps, num_mixtures):
             masses.extend(predicted_mass)
 
 
-def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange):
+def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange, type='mass'):
     """
     ----- Calculates probability mass function (PMF) of each data point -----
     Keyword arguments:
@@ -191,9 +191,14 @@ def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, m
         for mass_exp in all_masses_exp:
             probs_range = []
             probs_exact = []
-            a, b = 0, float(max(all_masses_sim)) * (1 + mrange)
-            mu, sigma = float(mass_exp), float(stdev)*float(mass_exp)
-            alpha, beta = ((a-mu)/sigma), ((b-mu)/sigma)
+            if type == 'mass':
+                a, b = 0, 2*float(max(all_masses_sim))
+                mu, sigma = float(mass_exp), float(stdev)
+                alpha, beta = ((a-mu)/sigma), ((b-mu)/sigma)
+            if type == 'percent':
+                a, b = 0, float(max(all_masses_sim)) * (1 + mrange)
+                mu, sigma = float(mass_exp), float(stdev)*float(mass_exp)
+                alpha, beta = ((a-mu)/sigma), ((b-mu)/sigma)
             for mass_sim in all_masses_sim:
                 upper_prob = ss.truncnorm.cdf(float(mass_sim) * (1 + mrange), alpha, beta, loc = mu, scale = sigma)
                 lower_prob = ss.truncnorm.cdf(float(mass_sim) * (1 - mrange), alpha, beta, loc = mu, scale = sigma)
