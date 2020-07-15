@@ -6,7 +6,7 @@
 import sys
 import pandas as pd
 from datetime import datetime
-from mof_array.pmf.process_mass_data import (
+from brute_force_analysis import (
     read_data_as_dict,
     write_data_as_tabcsv,
     yaml_loader,
