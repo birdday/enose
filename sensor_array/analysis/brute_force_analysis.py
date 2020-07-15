@@ -320,7 +320,7 @@ def create_bins(gases, num_bins, mof_list, element_pmf_results):
         # Jenna Bins
         # lower_lim = lower_comp
         # upper_lim = upper_comp + (upper_comp-lower_comp)/(num_bins)
-        bin_points = np.linspace(lower_lim, upper_lim, num=num_bins+1, endpoint=True)
+        bin_points.append(np.linspace(lower_lim, upper_lim, num=num_bins+1, endpoint=True))
     bin_points = np.transpose(np.vstack(bin_points))
 
     # Reformat bin_points
@@ -599,23 +599,33 @@ def plot_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, b
         binned_probabilities -- list of dictionaries, mof array, gas, pmfs
     """
 
-    # Make directory to store figures
-    os.makedirs('saved_array_pmfs_binned_figures/%s' % timestamp)
-
     # Generate the plots
-    array_names = [' '.join(array) for array in list_of_arrays]
+    # array_names = [' '.join(array) for array in list_of_arrays]
+    # for array in array_names:
+    array = list_of_arrays
+    plt.figure(figsize=(3.5,2.5), dpi=600)
+    plt.title('Binned Component\nProbabilities', fontsize=10)
+    plt.xlim([0,1])
+    plt.xticks(np.linspace(0,1,6), fontsize=8)
+    plt.xlabel('Mole Fraction', fontsize=10)
+    plt.ylim([0,0.7])
+    plt.yticks(np.linspace(0,0.7,8), fontsize=8)
+    plt.ylabel('Probability', fontsize=10)
+    # plt.rc('xtick', labelsize=20)
+    # plt.rc('ytick', labelsize=20)
+    colors = ['red', 'green', 'blue']
+    count = 0
     for gas in gases:
-        for array in array_names:
-            # X-axis, list of mole fracs to plot, for relevant gas
-            comps_to_plot = [bin[gas] for bin in bins][0:len(bins)-1]
-            # Y-axis, list of pmf values to plot
-            pmfs_to_plot = [row[array] for row in binned_probabilities if '%s bin' % gas in row.keys()]
-            pdfs_to_plot = len(comps_to_plot) * np.array(pmfs_to_plot)
-            # Plot and save figure in a directory 'figures'
-            plot_PMF = plt.figure()
-            plt.rc('xtick', labelsize=20)
-            plt.rc('ytick', labelsize=20)
-            plt.plot(comps_to_plot, pdfs_to_plot, 'ro-')
-            plt.title('Array: %s, Gas: %s' % (list_of_array_ids[array], gas))
-            plt.savefig("saved_array_pmfs_binned_figures/%s/Array#%s_%s.png" % (timestamp, list_of_array_ids[array], gas))
-            plt.close(plot_PMF)
+        # X-axis, list of mole fracs to plot, for relevant gas
+        comps_to_plot = [bin[gas] for bin in bins][0:len(bins)-1]
+        # Y-axis, list of pmf values to plot
+        pmfs_to_plot = [row[array] for row in binned_probabilities if '%s bin' % gas in row.keys()]
+        # pdfs_to_plot = len(comps_to_plot) * np.array(pmfs_to_plot)
+        # Plot and save figure in a directory 'figures'
+        plt.plot(comps_to_plot, pmfs_to_plot, 'o-', color=colors[count], markersize=3)
+        count += 1
+
+    plt.legend([r'$CO_2$',r'$N_2$', r'$N_2$'], fontsize=8)
+    plt.tight_layout()
+    plt.savefig("/Users/brian_day/Desktop/binned_pmf_figs/%s.png" % (array))
+    plt.close()
