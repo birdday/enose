@@ -192,7 +192,6 @@ def import_simulated_data(sim_results_import, mof_list, mof_densities, gases):
                 sim_results_full.extend([sim_results_temp])
     return(sim_results_full)
 
-def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange):
 
 def create_comp_list(simulated_data, mof_list, gases):
     # Extract a list of all possible compositions
@@ -315,6 +314,7 @@ def convert_experimental_data(exp_results_import, sim_results_import, mof_list, 
     return exp_results_import
 
 
+def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange, type='mass'):
     """
     ----- Calculates probability mass function (PMF) of each data point -----
     Keyword arguments:
@@ -350,20 +350,25 @@ def convert_experimental_data(exp_results_import, sim_results_import, mof_list, 
         mof_temp_dict = []
         for mass_exp in all_masses_exp:
             probs_range = []
-            # probs_exact = []
-            a, b = 0, float(max(all_masses_sim)) * (1 + mrange)
-            mu, sigma = float(mass_exp), float(stdev)*float(mass_exp)
-            alpha, beta = ((a-mu)/sigma), ((b-mu)/sigma)
+            probs_exact = []
+            if type == 'mass':
+                a, b = 0, 2*float(max(all_masses_sim))
+                mu, sigma = float(mass_exp), float(stdev)
+                alpha, beta = ((a-mu)/sigma), ((b-mu)/sigma)
+            if type == 'percent':
+                a, b = 0, float(max(all_masses_sim)) * (1 + mrange)
+                mu, sigma = float(mass_exp), float(stdev)*float(mass_exp)
+                alpha, beta = ((a-mu)/sigma), ((b-mu)/sigma)
             for mass_sim in all_masses_sim:
                 upper_prob = ss.truncnorm.cdf(float(mass_sim) * (1 + mrange), alpha, beta, loc = mu, scale = sigma)
                 lower_prob = ss.truncnorm.cdf(float(mass_sim) * (1 - mrange), alpha, beta, loc = mu, scale = sigma)
                 probs_range.append(upper_prob - lower_prob)
-                # prob_singlepoint = ss.truncnorm.pdf(float(mass_sim), alpha, beta, loc=mu, scale=sigma)
-                # probs_exact.append(prob_singlepoint)
+                prob_singlepoint = ss.truncnorm.pdf(float(mass_sim), alpha, beta, loc=mu, scale=sigma)
+                probs_exact.append(prob_singlepoint)
             sum_probs_range = sum(probs_range)
             norm_probs_range = [(i/sum_probs_range) for i in probs_range]
-            # sum_probs_exact = sum(probs_exact)
-            # norm_probs_exact = [(i/sum_probs_exact) for i in probs_exact]
+            sum_probs_exact = sum(probs_exact)
+            norm_probs_exact = [(i/sum_probs_exact) for i in probs_exact]
 
             # Update dictionary with pmf for each MOF
             new_temp_dict = []
@@ -371,22 +376,22 @@ def convert_experimental_data(exp_results_import, sim_results_import, mof_list, 
             if mof_temp_dict == []:
                 for index in range(len(norm_probs_range)):
                     mof_temp_dict = all_results_sim[index].copy()
-                    mof_temp_dict.update({ 'PMF_Range' : norm_probs_range[index] })
-                    # mof_temp_dict.update({ 'PMF_Exact' : norm_probs_exact[index] })
+                    mof_temp_dict['PMF_Range'] = norm_probs_range[index]
+                    mof_temp_dict['PMF_Exact'] = norm_probs_exact[index]
                     new_temp_dict.extend([mof_temp_dict])
                 new_temp_dict_2 = new_temp_dict
             # Add to the exisitng dictionary
             else:
                 for index in range(len(norm_probs_range)):
                     mof_temp_dict = new_temp_dict_2[index].copy()
-                    mof_temp_dict.update({ 'PMF_Range' : norm_probs_range[index] })
-                    # mof_temp_dict.update({ 'PMF_Exact' : norm_probs_exact[index] })
+                    mof_temp_dict['PMF_Range'] = norm_probs_range[index]
+                    mof_temp_dict['PMF_Exact'] = norm_probs_exact[index]
                     new_temp_dict.extend([mof_temp_dict])
                 new_temp_dict_2 = new_temp_dict
 
         element_pmf_results.extend(new_temp_dict_2)
 
-    return(element_pmf_results)
+    return element_pmf_results
 
 def calculate_array_pmf(mof_array, element_pmf_results):
     """
