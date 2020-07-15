@@ -9,36 +9,21 @@ from genetic_algorithm_analysis import *
 # --------------------------------------------------
 # ----- Import RASPA Data and yaml File ------------
 # --------------------------------------------------
-# Redefine system arguments
-# sim_data = sys.argv[1]
-# exp_data = sys.argv[2]
-
-# Data Paths
-# 1 bar
-# sim_data = '/Users/brian_day/Github-Repos/Sensor_Array/ALL_MOFS.csv'
-# exp_data = '/Users/brian_day/Github-Repos/Sensor_Array/exp_data_175.csv'
-
-# 5 and 10 bar
-sim_data = '/Users/brian_day/Desktop/WilmerLab_Research/Research Projects/CO2 Sensing/CO2_RASPA_Results/CO2_5bar/CO2_Sensing_Results_New/ALL_MOFS.csv'
-exp_data = '/Users/brian_day/Desktop/WilmerLab_Research/Research Projects/CO2 Sensing/CO2_RASPA_Results/CO2_5bar/CO2_Sensing_Results_New/exp_data_175.csv'
-
-# Import results as dictionary
-sim_results_import = read_data_as_dict(sim_data)
-exp_results_import = read_data_as_dict(exp_data)
-
 # Import yaml file as dictoncary
-filepath = '/Users/brian_day/Github-Repos/Sensor_Array/settings/process_config.yaml'
+filepath = 'config_files/process_config.sample.yaml'
 data = yaml_loader(filepath)
 
 # Redefine key varaibles in yaml file
+sim_data = data['sim_data']
+exp_data = data['exp_data']
 num_mofs = data['number_mofs']
 num_mixtures = data['num_mixtures']
-num_bins = data['number_bins']
-# num_best_worst = data['num_best_worst']
+num_bins = data['num_bins']
+num_best_worst = data['num_best_worst']
 stdev = data['stdev']
 mrange = data['mrange']
 gases = data['gases']
-mof_list = data['mof_array']
+mof_list = data['mof_list']
 mof_densities = {}
 for mof in mof_list:
     mof_densities.copy()
