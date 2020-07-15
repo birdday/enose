@@ -27,21 +27,13 @@ from brute_force_analysis import (
 # --------------------------------------------------
 # ----- Import RASPA Data and yaml File ------------
 # --------------------------------------------------
-# Redefine system arguments
-# sim_data = sys.argv[1]
-# exp_data = sys.argv[2]
-sim_data = 'ALL_MOFS.csv'
-exp_data = 'exp_data_175.csv'
-
-# Import results as dictionary
-sim_results_import = read_data_as_dict(sim_data)
-exp_results_import = read_data_as_dict(exp_data)
-
 # Import yaml file as dictoncary
-filepath = 'settings/process_config.sample.yaml'
+filepath = 'config_files/process_config.sample.yaml'
 data = yaml_loader(filepath)
 
 # Redefine key variables in yaml file
+sim_data = data['sim_data']
+exp_data = data['exp_data']
 num_mofs = data['number_mofs']
 num_mixtures = data['num_mixtures']
 num_bins = data['num_bins']
@@ -55,10 +47,13 @@ for mof in mof_list:
     mof_densities.copy()
     mof_densities.update({ mof : data['mofs'][mof]['density']})
 
+# Import results as dictionary
+sim_results_import = read_data_as_dict(sim_data)
+exp_results_import = read_data_as_dict(exp_data)
+
 # --------------------------------------------------
 # ----- Calculate arrays, PMFs, KLDs, etc. ---------
 # --------------------------------------------------
-# N.B. Parentheses are only necessary for implicit line continuation
 exp_results_full, exp_results_mass, exp_mof_list = \
     import_experimental_data(exp_results_import, mof_list, mof_densities, gases)
 sim_results_full = \
@@ -79,7 +74,7 @@ best_and_worst_arrays_by_absKLD, best_and_worst_arrays_by_jointKLD, best_and_wor
 # --------------------------------------------------
 # ----- Choose what to save ------------------------
 # --------------------------------------------------
-element_pmf_results_df = pd.DataFrame(data=element_pmf_results)
+# element_pmf_results_df = pd.DataFrame(data=element_pmf_results)
 list_of_array_ids = assign_array_ids(list_of_arrays)
 timestamp = (datetime.now().strftime("%Y_%m_%d__%H_%M_%S"))
 save_element_pmf_data(element_pmf_results_df, stdev, mrange, timestamp)
