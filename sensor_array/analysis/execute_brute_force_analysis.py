@@ -12,6 +12,10 @@ from brute_force_analysis import (
     yaml_loader,
     import_experimental_data,
     import_simulated_data,
+    create_comp_list,
+    moving_average_smooth,
+    reintroduce_random_error,
+    convert_experimental_data,
     calculate_element_pmf,
     calculate_all_arrays,
     create_bins,
@@ -60,6 +64,14 @@ exp_results_full, exp_results_mass, exp_mof_list = \
     import_experimental_data(exp_results_import, mof_list, mof_densities, gases)
 sim_results_full = \
     import_simulated_data(sim_results_import, mof_list, mof_densities, gases)
+comp_list, mole_fractions = \
+    create_comp_list(sim_results_full, mof_list, gases)
+sim_results_full = \
+    moving_average_smooth(sim_results_full, mof_list, gases, comp_list, mole_fractions, num_points = 2)
+sim_results_full = \
+    reintroduce_random_error(sim_results_full, error=1, seed=0)
+exp_results_full = \
+    convert_experimental_data(exp_results_full, sim_results_full, mof_list, gases)
 element_pmf_results = \
     calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange)
 list_of_arrays, all_array_pmf_results = \
