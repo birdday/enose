@@ -34,6 +34,13 @@ def read_composition_configuration(filename):
         comp_reader = csv.DictReader(csvfile, delimiter="\t")
         return list(comp_reader)
 
+
+def read_pressure_configuration(filename):
+    with open(filename, newline='') as csvfile:
+        reader = csv.reader(csvfile, delimiter="\t")
+        pressures = [float(row[0]) for row in reader]
+        return pressures
+
 def run_composition_simulation(run_id, mof, pressure, gases, composition, csv_writer=None, output_dir='output'):
     # ----- If there is no csv_writer passed, we write to a file that is unique to this process -----
     csv_file = None
