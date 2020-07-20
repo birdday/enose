@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import os
 
-results_filepath = '/Users/brian_day/Desktop/WilmerLab_Research/Research Projects/CO2 Sensing/CO2_RASPA_Results/CO2_10bar/CO2_Sensing_Results_New/'
+results_filepath = '/Users/brian_day/Desktop/WilmerLab_Research/Research_Projects/Gas_Sensing/CO2_RASPA_Results/CO2_1bar/CO2_Sensing_Results_New_New/'
 all_mof_results_filename = 'ALL_MOFS.csv'
 
 col_names = np.array(['Run_ID','MOF','Mass_Uptake','CO2','O2','N2'])

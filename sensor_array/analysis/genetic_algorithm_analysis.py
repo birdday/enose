@@ -192,7 +192,129 @@ def import_simulated_data(sim_results_import, mof_list, mof_densities, gases):
                 sim_results_full.extend([sim_results_temp])
     return(sim_results_full)
 
-def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange):
+
+def create_comp_list(simulated_data, mof_list, gases):
+    # Extract a list of all possible compositions
+    comp_list = []
+    for row in simulated_data:
+        if row['MOF'] == mof_list[0]:
+            temp_dict = {}
+            for gas in gases:
+                temp_dict[gas] = float(row[gas])
+            comp_list.extend([temp_dict])
+
+    # Extracta  a list of all possible mol fractions for each individual gas
+    mole_fractions = {}
+    for gas in gases:
+        temp_list = []
+        for row in comp_list:
+            temp_list.extend([float(row[gas])])
+        temp_list_no_dups = list(set(temp_list))
+        temp_list_no_dups.sort()
+        mole_fractions[gas] = temp_list_no_dups
+    return comp_list, mole_fractions
+
+
+def moving_average_smooth(sim_results_import, mof_list, gases, comp_list, mole_fractions, num_points=1):
+    """
+    Smooth a set of simulated data by averageing the data points around a given value. Central points
+    sample from points in all directions. Boundary points sample from points along the boundary.
+    Corner points remain unchanged.
+    With current data strucutre, this function will be highly inefficient. May not be slow enough to
+    warrant changing, but worth noting.
+    """
+
+    # Create a temporary data set for the mof of interest. Consider doing this in a separate function.
+    data_smoothed = []
+    for mof in mof_list:
+
+        temp_data = []
+        for row in sim_results_import:
+            if row['MOF'] == mof:
+                temp_data.extend([row])
+
+        for comp_main in comp_list:
+            temp_dict = {}
+            for row in temp_data:
+                if [float(row[gas]) for gas in gases] == [comp_main[gas] for gas in gases]:
+                    temp_dict = dict(row)
+            for gas in gases:
+                temp_dict[gas] = comp_main[gas]
+
+            # Create list of possible compoenent mole fractions to use in determining neighbors.
+            allowed_comps = {}
+            for gas in gases:
+                index = mole_fractions[gas].index(comp_main[gas])
+                for i in range(0, num_points+1):
+                    if index-i >= 0 and index+i <= len(mole_fractions[gas])-1:
+                        allowed_comps[gas] = [mole_fractions[gas][i] for i in range(index-i, index+i+1)]
+
+            # Extract a list of neighbors (include main point) based on the allowed composititons.
+            # Since this includes the main point, len(temp_data_subset) will always >= 1.
+            temp_data_subset = []
+            for row in temp_data:
+                boolean_array = []
+                for gas in gases:
+                    if allowed_comps.get(gas) != None:
+                        if float(row[gas]) in allowed_comps[gas]:
+                            boolean_array.extend([1])
+                        else:
+                            boolean_array.extend([0])
+                    else:
+                        boolean_array.extend([0])
+                boolean_array = [i for i in boolean_array if i == 0]
+                if len(boolean_array) == 0:
+                    temp_data_subset.extend([row])
+
+            # Calculate the average mass of all points in the subset.
+            if len(temp_data_subset) != 0:
+                mass_total = 0.0
+                for row in temp_data_subset:
+                    mass_total += float(row['Mass_mg/cm3'])
+                mass_average = mass_total / len(temp_data_subset)
+                temp_dict['Mass_mg/cm3'] = mass_average
+                temp_dict['Num_points'] = len(temp_data_subset)
+            else:
+                mass_average = 0.0
+                temp_dict['Mass_mg/cm3'] = temp_dict['Mass_mg/cm3']
+                temp_dict['Num_points'] = len(temp_data_subset)
+
+            data_smoothed.extend([temp_dict])
+
+    return data_smoothed
+
+
+def reintroduce_random_error(sim_results_import, error=1, seed=0):
+    """
+    Function used for 'manually' adding random error to smoothed data. Regardless of the choosen
+    error amount, the lower bound on the adsorbed mass is still 0 (i.e. no negative adsorbed masses).
+    """
+    random.seed(seed)
+    for row in sim_results_import:
+        if row['Mass_mg/cm3']-error <= 0:
+            row['Mass_mg/cm3'] += random.uniform(-row['Mass_mg/cm3'],error)
+        else:
+            row['Mass_mg/cm3'] += random.uniform(-error,error)
+
+    return sim_results_import
+
+
+def convert_experimental_data(exp_results_import, sim_results_import, mof_list, gases):
+    """
+    This is a function only meant to convert the set of experimental data from the unsmoothed set to
+    the smoothed set, without the need for additional work outside of the code. Should probably streamline
+    this process better in the future.
+    """
+    exp_comp = {gas: exp_results_import[0][gas] for gas in gases}
+    for row_exp in exp_results_import:
+        for row_sim in sim_results_import:
+            if row_sim['MOF'] == row_exp['MOF'] and {gas: float(row_sim[gas]) for gas in gases} == {gas: float(row_exp[gas]) for gas in gases}:
+                row_exp['Mass_mg/cm3'] = row_sim['Mass_mg/cm3']
+
+    return exp_results_import
+
+
+def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange, type='mass'):
     """
     ----- Calculates probability mass function (PMF) of each data point -----
     Keyword arguments:
@@ -228,20 +350,25 @@ def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, m
         mof_temp_dict = []
         for mass_exp in all_masses_exp:
             probs_range = []
-            # probs_exact = []
-            a, b = 0, float(max(all_masses_sim)) * (1 + mrange)
-            mu, sigma = float(mass_exp), float(stdev)*float(mass_exp)
-            alpha, beta = ((a-mu)/sigma), ((b-mu)/sigma)
+            probs_exact = []
+            if type == 'mass':
+                a, b = 0, 2*float(max(all_masses_sim))
+                mu, sigma = float(mass_exp), float(stdev)
+                alpha, beta = ((a-mu)/sigma), ((b-mu)/sigma)
+            if type == 'percent':
+                a, b = 0, float(max(all_masses_sim)) * (1 + mrange)
+                mu, sigma = float(mass_exp), float(stdev)*float(mass_exp)
+                alpha, beta = ((a-mu)/sigma), ((b-mu)/sigma)
             for mass_sim in all_masses_sim:
                 upper_prob = ss.truncnorm.cdf(float(mass_sim) * (1 + mrange), alpha, beta, loc = mu, scale = sigma)
                 lower_prob = ss.truncnorm.cdf(float(mass_sim) * (1 - mrange), alpha, beta, loc = mu, scale = sigma)
                 probs_range.append(upper_prob - lower_prob)
-                # prob_singlepoint = ss.truncnorm.pdf(float(mass_sim), alpha, beta, loc=mu, scale=sigma)
-                # probs_exact.append(prob_singlepoint)
+                prob_singlepoint = ss.truncnorm.pdf(float(mass_sim), alpha, beta, loc=mu, scale=sigma)
+                probs_exact.append(prob_singlepoint)
             sum_probs_range = sum(probs_range)
             norm_probs_range = [(i/sum_probs_range) for i in probs_range]
-            # sum_probs_exact = sum(probs_exact)
-            # norm_probs_exact = [(i/sum_probs_exact) for i in probs_exact]
+            sum_probs_exact = sum(probs_exact)
+            norm_probs_exact = [(i/sum_probs_exact) for i in probs_exact]
 
             # Update dictionary with pmf for each MOF
             new_temp_dict = []
@@ -249,22 +376,22 @@ def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, m
             if mof_temp_dict == []:
                 for index in range(len(norm_probs_range)):
                     mof_temp_dict = all_results_sim[index].copy()
-                    mof_temp_dict.update({ 'PMF_Range' : norm_probs_range[index] })
-                    # mof_temp_dict.update({ 'PMF_Exact' : norm_probs_exact[index] })
+                    mof_temp_dict['PMF_Range'] = norm_probs_range[index]
+                    mof_temp_dict['PMF_Exact'] = norm_probs_exact[index]
                     new_temp_dict.extend([mof_temp_dict])
                 new_temp_dict_2 = new_temp_dict
             # Add to the exisitng dictionary
             else:
                 for index in range(len(norm_probs_range)):
                     mof_temp_dict = new_temp_dict_2[index].copy()
-                    mof_temp_dict.update({ 'PMF_Range' : norm_probs_range[index] })
-                    # mof_temp_dict.update({ 'PMF_Exact' : norm_probs_exact[index] })
+                    mof_temp_dict['PMF_Range'] = norm_probs_range[index]
+                    mof_temp_dict['PMF_Exact'] = norm_probs_exact[index]
                     new_temp_dict.extend([mof_temp_dict])
                 new_temp_dict_2 = new_temp_dict
 
         element_pmf_results.extend(new_temp_dict_2)
 
-    return(element_pmf_results)
+    return element_pmf_results
 
 def calculate_array_pmf(mof_array, element_pmf_results):
     """

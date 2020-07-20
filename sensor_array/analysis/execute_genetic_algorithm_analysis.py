@@ -4,63 +4,59 @@
 import sys
 import pandas as pd
 from datetime import datetime
-from GeneticAlgorithm_BrianEdits import *
+from genetic_algorithm_analysis import *
 
 # --------------------------------------------------
 # ----- Import RASPA Data and yaml File ------------
 # --------------------------------------------------
-# Redefine system arguments
-# sim_data = sys.argv[1]
-# exp_data = sys.argv[2]
-
-# Data Paths
-# 1 bar
-# sim_data = '/Users/brian_day/Github-Repos/Sensor_Array/ALL_MOFS.csv'
-# exp_data = '/Users/brian_day/Github-Repos/Sensor_Array/exp_data_175.csv'
-
-# 5 and 10 bar
-sim_data = '/Users/brian_day/Desktop/WilmerLab_Research/Research Projects/CO2 Sensing/CO2_RASPA_Results/CO2_5bar/CO2_Sensing_Results_New/ALL_MOFS.csv'
-exp_data = '/Users/brian_day/Desktop/WilmerLab_Research/Research Projects/CO2 Sensing/CO2_RASPA_Results/CO2_5bar/CO2_Sensing_Results_New/exp_data_175.csv'
-
-# Import results as dictionary
-sim_results_import = read_data_as_dict(sim_data)
-exp_results_import = read_data_as_dict(exp_data)
-
 # Import yaml file as dictoncary
-filepath = '/Users/brian_day/Github-Repos/Sensor_Array/settings/process_config.yaml'
+filepath = 'config_files/process_config.sample.yaml'
 data = yaml_loader(filepath)
 
 # Redefine key varaibles in yaml file
+sim_data = data['sim_data']
+exp_data = data['exp_data']
 num_mofs = data['number_mofs']
 num_mixtures = data['num_mixtures']
-num_bins = data['number_bins']
-# num_best_worst = data['num_best_worst']
+num_bins = data['num_bins']
+num_best_worst = data['num_best_worst']
 stdev = data['stdev']
 mrange = data['mrange']
 gases = data['gases']
-mof_list = data['mof_array']
+mof_list = data['mof_list']
 mof_densities = {}
 for mof in mof_list:
     mof_densities.copy()
     mof_densities.update({ mof : data['mofs'][mof]['density']})
 
+# Import results as dictionary
+sim_results_import = read_data_as_dict(sim_data)
+exp_results_import = read_data_as_dict(exp_data)
+
 # --------------------------------------------------
 # ----- Calculate all single MOF PMFs --------------
 # --------------------------------------------------
-(exp_results_full, exp_results_mass, exp_mof_list) = (
-    import_experimental_data(exp_results_import, mof_list, mof_densities, gases) )
-(sim_results_full) = (
-    import_simulated_data(sim_results_import, mof_list, mof_densities, gases) )
-(element_pmf_results) = (
-    calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange) )
+exp_results_full, exp_results_mass, exp_mof_list = \
+    import_experimental_data(exp_results_import, mof_list, mof_densities, gases)
+sim_results_full = \
+    import_simulated_data(sim_results_import, mof_list, mof_densities, gases)
+comp_list, mole_fractions = \
+    create_comp_list(sim_results_full, mof_list, gases)
+sim_results_full = \
+    moving_average_smooth(sim_results_full, mof_list, gases, comp_list, mole_fractions, num_points = 2)
+sim_results_full = \
+    reintroduce_random_error(sim_results_full, error=1, seed=0)
+exp_results_full = \
+    convert_experimental_data(exp_results_full, sim_results_full, mof_list, gases)
+element_pmf_results = \
+    calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange)
 
 # --------------------------------------------------
 # ----- Run the Genetic Algorithm ------------------
 # --------------------------------------------------
 
-array_size_vect = [10, 15, 20, 25, 30, 35, 40, 45]
-# array_size_vect = [1,2,3,4,5]
-num_runs = 3
+array_size_vect = [5, 10, 15, 20, 25, 30, 35, 40, 45]
+num_runs = 1
 population_size = 20
 num_generations = [25, 25, 50, 50, 50]
 mutation_rates = [0.50, 0.20, 0.10, 0.05, 0.02]
@@ -68,7 +64,7 @@ seek = 'best'
 seek_by = 'Absolute_KLD'
 num_best = 2
 num_lucky = 2
-results_filepath = '/Users/brian_day/Desktop/GeneticAlgorithm_Results/elitist_GA/'
+results_filepath = '/Users/brian_day/Desktop/GeneticAlgorithm_Results/'
 
 for array_size in array_size_vect:
     for i in range(num_runs):

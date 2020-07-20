@@ -58,16 +58,18 @@ from datetime import datetime
 from functools import reduce
 from itertools import combinations
 from math import isnan, log
-from random import random
+import random
 
 import numpy as np
 import pandas as pd
 import scipy.interpolate as si
 import scipy.stats as ss
 import yaml
+import matplotlib
 from matplotlib import pyplot as plt
 from scipy.spatial import Delaunay
 from scipy.interpolate import spline
+import ternary
 
 # --------------------------------------------------
 # ----- User-defined Python Functions --------------
@@ -122,6 +124,7 @@ def import_experimental_data(exp_results_import, mof_list, mof_densities, gases)
                 None
     return exp_results_full, exp_results_mass, exp_mof_list
 
+
 def import_simulated_data(sim_results_import, mof_list, mof_densities, gases):
     sim_results_full = []
     for mof in mof_list:
@@ -131,6 +134,140 @@ def import_simulated_data(sim_results_import, mof_list, mof_densities, gases):
                 row['Mass_mg/cm3'] = mass
                 sim_results_full.extend([row])
     return sim_results_full
+
+
+def create_comp_list(simulated_data, mof_list, gases):
+    # Extract a list of all possible compositions
+    comp_list = []
+    for row in simulated_data:
+        if row['MOF'] == mof_list[0]:
+            temp_dict = {}
+            for gas in gases:
+                temp_dict[gas] = float(row[gas])
+            comp_list.extend([temp_dict])
+
+    # Extracta  a list of all possible mol fractions for each individual gas
+    mole_fractions = {}
+    for gas in gases:
+        temp_list = []
+        for row in comp_list:
+            temp_list.extend([float(row[gas])])
+        temp_list_no_dups = list(set(temp_list))
+        temp_list_no_dups.sort()
+        mole_fractions[gas] = temp_list_no_dups
+    return comp_list, mole_fractions
+
+
+# Set of potential smoothing functions.
+def moving_average_smooth(sim_results_import, mof_list, gases, comp_list, mole_fractions, num_points=1):
+    """
+    Smooth a set of simulated data by averageing the data points around a given value. Central points
+    sample from points in all directions. Boundary points sample from points along the boundary.
+    Corner points remain unchanged.
+    With current data strucutre, this function will be highly inefficient. May not be slow enough to
+    warrant changing, but worth noting.
+    """
+
+    # Create a temporary data set for the mof of interest. Consider doing this in a separate function.
+    data_smoothed = []
+    for mof in mof_list:
+
+        temp_data = []
+        for row in sim_results_import:
+            if row['MOF'] == mof:
+                temp_data.extend([row])
+
+        for comp_main in comp_list:
+            temp_dict = {}
+            for row in temp_data:
+                if [float(row[gas]) for gas in gases] == [comp_main[gas] for gas in gases]:
+                    temp_dict = dict(row)
+            for gas in gases:
+                temp_dict[gas] = comp_main[gas]
+
+            # Create list of possible compoenent mole fractions to use in determining neighbors.
+            allowed_comps = {}
+            for gas in gases:
+                index = mole_fractions[gas].index(comp_main[gas])
+                for i in range(0, num_points+1):
+                    if index-i >= 0 and index+i <= len(mole_fractions[gas])-1:
+                        allowed_comps[gas] = [mole_fractions[gas][i] for i in range(index-i, index+i+1)]
+
+            # Extract a list of neighbors (include main point) based on the allowed composititons.
+            # Since this includes the main point, len(temp_data_subset) will always >= 1.
+            temp_data_subset = []
+            for row in temp_data:
+                boolean_array = []
+                for gas in gases:
+                    if allowed_comps.get(gas) != None:
+                        if float(row[gas]) in allowed_comps[gas]:
+                            boolean_array.extend([1])
+                        else:
+                            boolean_array.extend([0])
+                    else:
+                        boolean_array.extend([0])
+                boolean_array = [i for i in boolean_array if i == 0]
+                if len(boolean_array) == 0:
+                    temp_data_subset.extend([row])
+
+            # Calculate the average mass of all points in the subset.
+            if len(temp_data_subset) != 0:
+                mass_total = 0.0
+                for row in temp_data_subset:
+                    mass_total += float(row['Mass_mg/cm3'])
+                mass_average = mass_total / len(temp_data_subset)
+                temp_dict['Mass_mg/cm3'] = mass_average
+                temp_dict['Num_points'] = len(temp_data_subset)
+            else:
+                mass_average = 0.0
+                temp_dict['Mass_mg/cm3'] = temp_dict['Mass_mg/cm3']
+                temp_dict['Num_points'] = len(temp_data_subset)
+
+            data_smoothed.extend([temp_dict])
+
+    return data_smoothed
+
+
+def reintroduce_random_error(sim_results_import, error=1, seed=0):
+    random.seed(seed)
+    for row in sim_results_import:
+        row['Mass_mg/cm3'] += random.uniform(-error,error)
+
+    return sim_results_import
+
+
+def convert_experimental_data(exp_results_import, sim_results_import, mof_list, gases):
+    """
+    This is a function only meant to convert the set of experimental data from the unsmoothed set to
+    the smoothed set, without the need for additional work outside of the code. Should probably streamline
+    this process better in the future.
+    """
+    exp_comp = {gas: exp_results_import[0][gas] for gas in gases}
+    for row_exp in exp_results_import:
+        for row_sim in sim_results_import:
+            if row_sim['MOF'] == row_exp['MOF'] and {gas: float(row_sim[gas]) for gas in gases} == {gas: float(row_exp[gas]) for gas in gases}:
+                row_exp['Mass_mg/cm3'] = row_sim['Mass_mg/cm3']
+
+    return exp_results_import
+
+# def polyfit_average_smooth(sim_results_import):
+# 	"""
+# 	Custom smoothing strategy in which a polynomial is fit along a set of points along each axis. The
+# 	new value of the averaged point is the average of each of the polynomial functions evaluated at
+# 	the given point.
+# 	"""
+# 	for mof in mof_list:
+# 		for gas in gases:
+# 			for comp in comp_list:
+# 	return data_smoothed
+#
+#
+# def kernal_smooth(sim_results_import):
+# 	return data_smoothed
+#
+#
+# def spline_smooth(sim_results_import):
+# 	return data_smoothed
 
 
 def add_random_gas(gases, comps, num_mixtures):
@@ -154,7 +291,7 @@ def add_random_gas(gases, comps, num_mixtures):
             masses.extend(predicted_mass)
 
 
-def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange):
+def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, mrange, type='mass'):
     """
     ----- Calculates probability mass function (PMF) of each data point -----
     Keyword arguments:
@@ -191,9 +328,14 @@ def calculate_element_pmf(exp_results_full, sim_results_full, mof_list, stdev, m
         for mass_exp in all_masses_exp:
             probs_range = []
             probs_exact = []
-            a, b = 0, float(max(all_masses_sim)) * (1 + mrange)
-            mu, sigma = float(mass_exp), float(stdev)*float(mass_exp)
-            alpha, beta = ((a-mu)/sigma), ((b-mu)/sigma)
+            if type == 'mass':
+                a, b = 0, 2*float(max(all_masses_sim))
+                mu, sigma = float(mass_exp), float(stdev)
+                alpha, beta = ((a-mu)/sigma), ((b-mu)/sigma)
+            if type == 'percent':
+                a, b = 0, float(max(all_masses_sim)) * (1 + mrange)
+                mu, sigma = float(mass_exp), float(stdev)*float(mass_exp)
+                alpha, beta = ((a-mu)/sigma), ((b-mu)/sigma)
             for mass_sim in all_masses_sim:
                 upper_prob = ss.truncnorm.cdf(float(mass_sim) * (1 + mrange), alpha, beta, loc = mu, scale = sigma)
                 lower_prob = ss.truncnorm.cdf(float(mass_sim) * (1 - mrange), alpha, beta, loc = mu, scale = sigma)
@@ -247,6 +389,16 @@ def calculate_array_pmf(mof_array, element_pmf_results):
     norm_factor = sum(compound_pmfs)
     single_array_pmf_results = [ i / norm_factor for i in compound_pmfs ]
     return single_array_pmf_results
+
+
+def calculate_all_arrays_list(mof_list, num_mofs):
+    mof_array_list = []
+    array_size = min(num_mofs)
+    while array_size <= max(num_mofs):
+        mof_array_list.extend(list(combinations(mof_list, array_size)))
+        array_size += 1
+
+    return mof_array_list
 
 
 def calculate_all_arrays(mof_list, num_mofs, element_pmf_results, gases):
@@ -320,7 +472,7 @@ def create_bins(gases, num_bins, mof_list, element_pmf_results):
         # Jenna Bins
         # lower_lim = lower_comp
         # upper_lim = upper_comp + (upper_comp-lower_comp)/(num_bins)
-        bin_points = np.linspace(lower_lim, upper_lim, num=num_bins+1, endpoint=True)
+        bin_points.append(np.linspace(lower_lim, upper_lim, num=num_bins+1, endpoint=True))
     bin_points = np.transpose(np.vstack(bin_points))
 
     # Reformat bin_points
@@ -329,6 +481,57 @@ def create_bins(gases, num_bins, mof_list, element_pmf_results):
         bins.append({gases[i] : row[i] for i in range(len(gases))})
 
     return bins
+
+
+def create_comp_set_dict(element_pmf_results, mof_list):
+    comp_set_dict = [row for row in element_pmf_results if row['MOF'] == mof_list[0]]
+    return comp_set_dict
+
+
+def bin_compositions_single_array(gases, bins, array, single_array_pmf_results, comp_set_dict):
+    # Create a dictionary from array_pmf_results
+    array_key = ' '.join(array)
+
+    array_dict = []
+    for index in range(len(comp_set_dict)):
+        array_dict_temp = {array_key : single_array_pmf_results[index]}
+        for gas in gases:
+            array_dict_temp[gas] = float(comp_set_dict[index][gas])
+        array_dict.append(array_dict_temp)
+
+    # Loop through dictionary and assign bins
+    for gas in gases:
+        for row in array_dict:
+            for i in range(1,len(bins)):
+                lower_bin = bins[i-1][gas]
+                upper_bin = bins[i][gas]
+                gas_comp = float(row[gas])
+                if gas_comp >= lower_bin and gas_comp < upper_bin:
+                    row['%s bin' % gas] = lower_bin
+
+    # Loops through all of the bins and takes sum over all pmfs in that bin.
+    binned_probabilities_sum = []
+    for gas in gases:
+        all_bins_temp_sum = []
+        for bin in bins[0:len(bins)-1]:
+            pmfs_temp = []
+            for row in array_dict:
+                if bin[gas] == row['%s bin' % gas]:
+                    pmfs_temp.append(row[array_key])
+
+            single_bin_temp = {'%s bin' % gas : bin[gas]}
+            with_sum = copy.deepcopy(single_bin_temp)
+            if pmfs_temp == []:
+                with_sum[array_key] = 0
+            else:
+                with_sum[array_key] = sum(pmfs_temp)
+            all_bins_temp_sum.append(with_sum)
+
+        # Creates list of binned probabilities, already normalized
+        binned_probabilities_sum.extend(all_bins_temp_sum)
+
+    return binned_probabilities_sum, array_dict
+
 
 def bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results):
     """
@@ -391,6 +594,30 @@ def bin_compositions(gases, bins, list_of_arrays, all_array_pmf_results):
         binned_probabilities_max.extend(all_bins_temp_max)
 
     return binned_probabilities_sum, binned_probabilities_max
+
+
+def calculate_single_array_kld(gases, array, bins, single_array_pmf_results, binned_probabilities):
+    dict_temp = {'MOF_Array' : array}
+    array_name = ' '.join(array)
+
+    # Calculate Absolute KLD
+    reference_prob_abs = 1/len(single_array_pmf_results)
+    abs_kld = sum([float(pmf)*log(float(pmf)/reference_prob_abs,2) for pmf in single_array_pmf_results if pmf != 0])
+    dict_temp['Absolute_KLD'] = round(abs_kld,4)
+
+    # Calculate Component KLD
+    for gas in gases:
+        reference_prob_comp = 1/len(bins)
+        pmfs_per_array_comp = [row[array_name] for row in binned_probabilities if '%s bin' % gas in row.keys()]
+        kld_comp = sum([float(pmf)*log(float(pmf)/reference_prob_comp,2) for pmf in pmfs_per_array_comp if pmf != 0])
+        dict_temp['%s KLD' % gas] = round(kld_comp,4)
+
+    # Calculate Joint KLD
+    product_temp = reduce(operator.mul, [dict_temp['%s KLD' % gas] for gas in gases], 1)
+    dict_temp['Joint_KLD'] = product_temp
+    dict_temp['Array_Size'] = len(dict_temp['MOF_Array'])
+
+    return dict_temp
 
 
 def calculate_kld(gases, list_of_arrays, bins, all_array_pmf_results, binned_probabilities):
@@ -482,6 +709,7 @@ def choose_arrays(gases, num_mofs, array_kld_results, num_best_worst):
 
     return best_and_worst_arrays_by_absKLD, best_and_worst_arrays_by_jointKLD, best_and_worst_arrays_by_gasKLD
 
+
 def assign_array_ids(list_of_arrays):
     """
     Assign numbers to each array for shorthand notation
@@ -508,6 +736,7 @@ def assign_array_ids(list_of_arrays):
             writer.writerow([val, key])
 
     return array_id_dict
+
 
 def save_element_pmf_data(element_pmf_results, stdev, mrange, timestamp):
     """
@@ -561,6 +790,155 @@ def save_unbinned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, all_a
                 writer.writerow(line)
 
 
+def prepare_ternary_dict_rgba(a,b,c,z,vmin,vmax,cmap):
+    """
+    Prepare data for use with 'ternary'
+    """
+
+    color_norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+    alpha_norm = matplotlib.colors.Normalize(vmin=vmin-(vmax-vmin), vmax=vmax)
+    color_map = matplotlib.cm.get_cmap(cmap)
+
+    data_dict_rgba = dict()
+    data_dict_zval = dict()
+    for i in range(len(a)):
+        A_out = np.round(a[i]*100,3)
+        B_out = np.round(b[i]*100,3)
+        C_out = np.round(c[i]*100,3)
+        alpha = 1
+        rgba = color_map(color_norm(z[i]))[:3] + (alpha,)
+        # data_dict[(bottom, right, left)] = ()
+        data_dict_rgba[(A_out, B_out, C_out)] = (rgba)
+        data_dict_zval[(A_out, B_out, C_out)] = z[i]
+
+    return(data_dict_rgba, data_dict_zval)
+
+
+def prepare_ternary_dict_rgba_rescaled(a,b,c,z,vmin,vmax,cmap):
+    """
+    Prepare rescaled data for use with 'ternary'
+    """
+
+    rescale_sub = max([min(a), min(b), min(c)])
+    rescale_den = max([max(a)-min(a), max(b)-min(b), max(c)-min(c)])
+
+    color_norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+    color_map = matplotlib.cm.get_cmap(cmap)
+
+    data_dict_rgba = dict()
+    data_dict_zval = dict()
+    for i in range(len(a)):
+        atemp = (a[i]-min(a))/rescale_den
+        btemp = (b[i]-min(b))/rescale_den
+        ctemp = (c[i]-min(c))/rescale_den
+        A_out = np.round(atemp*100,3)
+        B_out = np.round(btemp*100,3)
+        C_out = np.round(ctemp*100,3)
+        rgba = color_map(color_norm(z[i]))
+        # data_dict[(bottom, right, left)] = ()
+        data_dict_rgba[(A_out, B_out, C_out)] = (rgba)
+        data_dict_zval[(A_out, B_out, C_out)] = z[i]
+
+    return(data_dict_rgba, data_dict_zval)
+
+
+def harper_ternary(data_dict, z, array_id, vmin, vmax, cmap, use_rgba, polygon_sf):
+    # Set image size and resolution
+    matplotlib.rcParams['figure.dpi'] = 1200
+    matplotlib.rcParams['figure.figsize'] = (3.25, 2.75)
+
+    # Initialize the Plot
+    scale = 100
+    figure, tax = ternary.figure(scale=scale)
+    tax.clear_matplotlib_ticks()
+    tax.get_axes().axis('off')
+    if use_rgba == True:
+        tax.heatmap(data_dict, style="h", use_rgba=use_rgba, colorbar=False, polygon_sf=polygon_sf)
+    elif use_rgba == False:
+        tax.heatmap(data_dict, style="dt", use_rgba=use_rgba, polygon_sf=polygon_sf)
+
+    # Set colorbar
+    # vmin = min(z)
+    # vmax = max(z)
+    color_norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
+    color_map = matplotlib.cm.get_cmap(cmap)
+    sm = plt.cm.ScalarMappable(cmap=color_map, norm=color_norm)
+    sm.set_array([])
+    cbar = plt.colorbar(sm, ticks=np.linspace(0,vmax,6), fraction=0.02, format='%.1f')
+    cbar.ax.tick_params(labelsize=7)
+    # cbar.ax.set_ylabel(r'$Mass\ [mg/cm^3]$', rotation=90, fontsize=6)
+    cbar.ax.set_ylabel(r'Mass Uptake [$mg/cm^3$]', rotation=90, fontsize=9)
+
+    # Draw boundary, gridlines, and ticks
+    tax.boundary(linewidth=1.0)
+    tax.gridlines(color=(0.5, 0.5, 0.5, 0.5), multiple=100/(6*4), linewidth=0.25)
+    tax.gridlines(color=(0.5, 0.5, 0.5, 0.5), multiple=100/6, linewidth=0.5)
+    tax.ticks(axis='b', ticks=[40,50,60,70,80,90,100], linewidth=1, multiple=100/7, tick_formats='%.0f', offset = 0.021, fontsize = 7)
+    tax.ticks(axis='lr', ticks=[0,10,20,30,40,50,60], linewidth=1, multiple=100/7, tick_formats='%.0f', offset = 0.03, fontsize = 7)
+
+    # Set axis labels and title
+    title_fontsize = 9
+    axis_fontsize = 9
+    # tax.set_title("1 Mof Array: BISWEG", fontsize=title_fontsize, y=1.05)
+    # tax.right_corner_label("X", fontsize=fontsize)
+    # tax.top_corner_label("Y", fontsize=fontsize)
+    # tax.left_corner_label("Z", fontsize=fontsize)
+    tax.left_axis_label("Carbon Dioxide", fontsize=axis_fontsize, offset = 0.15)
+    tax.right_axis_label("Oxygen", fontsize=axis_fontsize, offset = 0.15)
+    tax.bottom_axis_label("Nitrogen", fontsize=axis_fontsize, offset = 0.05)
+
+    plt.savefig('/Users/brian_day/Desktop/triplots/%s.png' % array_id, bbox_inches='tight')
+    plt.close()
+    return(figure)
+
+
+def plot_element_mass_data(gases, mof_list, data, timestamp):
+    cmap = 'viridis'
+    psf = 1.05
+    CO2_points = np.array([float(row['CO2']) for row in data if row['MOF'] == mof_list[0]])
+    N2_points = np.array([float(row['N2']) for row in data if row['MOF'] == mof_list[0]])
+    O2_points = np.array([float(row['O2']) for row in data if row['MOF'] == mof_list[0]])
+
+    mass_values_minmax = []
+    mass_values_minmax = [float(row['Mass_mg/cm3']) for row in data]
+    # vmin = np.min(mass_values_minmax)
+    # vmax = np.ceil(np.max(mass_values_minmax)*1000)/1000
+
+    for mof in mof_list:
+        mass_values = np.array([float(row['Mass_mg/cm3']) for row in data if row['MOF'] == mof])
+        vmin = np.floor(np.min(mass_values)/10)*10
+        vmax = np.ceil(np.max(mass_values)/10)*10
+
+        (dict_rgba, dict_zval) = prepare_ternary_dict_rgba_rescaled(N2_points, O2_points, CO2_points, mass_values, vmin, vmax, cmap=cmap)
+        figure = harper_ternary(dict_rgba, mass_values, mof, vmin, vmax, cmap=cmap, use_rgba=True, polygon_sf=psf)
+
+
+def plot_unbinned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, all_array_pmf_results, timestamp):
+    cmap = 'viridis'
+    psf = 1.05
+    data = all_array_pmf_results
+    CO2_points = np.array([float(row['CO2']) for row in data])
+    N2_points = np.array([float(row['N2']) for row in data])
+    O2_points = np.array([float(row['O2']) for row in data])
+
+    PMF_values_minmax = []
+    for row in all_array_pmf_results:
+        for array in list_of_arrays:
+            PMF_values_minmax.extend([float(row[array]) for row in data])
+    vmin = np.min(PMF_values_minmax)
+    # vmax = np.ceil(np.max(PMF_values_minmax)*1000)/1000
+    vmax = 0.40
+
+    for array in list_of_arrays:
+        array_id = array
+        PMF_values = []
+        for row in all_array_pmf_results:
+            PMF_values = np.array([float(row[array]) for row in data])
+
+        (dict_rgba, dict_zval) = prepare_ternary_dict_rgba_rescaled(N2_points, O2_points, CO2_points, PMF_values, vmin, vmax, cmap=cmap)
+        figure = harper_ternary(dict_rgba, PMF_values, array_id, vmin, vmax, cmap=cmap, use_rgba=True, polygon_sf=psf)
+
+
 def save_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, binned_probabilities, timestamp):
     """
     ----- Saves pmf and mole fraction data for each gas/MOF array combination -----
@@ -599,23 +977,33 @@ def plot_binned_array_pmf_data(gases, list_of_arrays, list_of_array_ids, bins, b
         binned_probabilities -- list of dictionaries, mof array, gas, pmfs
     """
 
-    # Make directory to store figures
-    os.makedirs('saved_array_pmfs_binned_figures/%s' % timestamp)
-
     # Generate the plots
-    array_names = [' '.join(array) for array in list_of_arrays]
+    # array_names = [' '.join(array) for array in list_of_arrays]
+    # for array in array_names:
+    array = list_of_arrays
+    plt.figure(figsize=(3.5,2.5), dpi=600)
+    plt.title('Binned Component\nProbabilities', fontsize=10)
+    plt.xlim([0,1])
+    plt.xticks(np.linspace(0,1,6), fontsize=8)
+    plt.xlabel('Mole Fraction', fontsize=10)
+    plt.ylim([0,0.7])
+    plt.yticks(np.linspace(0,0.7,8), fontsize=8)
+    plt.ylabel('Probability', fontsize=10)
+    # plt.rc('xtick', labelsize=20)
+    # plt.rc('ytick', labelsize=20)
+    colors = ['red', 'green', 'blue']
+    count = 0
     for gas in gases:
-        for array in array_names:
-            # X-axis, list of mole fracs to plot, for relevant gas
-            comps_to_plot = [bin[gas] for bin in bins][0:len(bins)-1]
-            # Y-axis, list of pmf values to plot
-            pmfs_to_plot = [row[array] for row in binned_probabilities if '%s bin' % gas in row.keys()]
-            pdfs_to_plot = len(comps_to_plot) * np.array(pmfs_to_plot)
-            # Plot and save figure in a directory 'figures'
-            plot_PMF = plt.figure()
-            plt.rc('xtick', labelsize=20)
-            plt.rc('ytick', labelsize=20)
-            plt.plot(comps_to_plot, pdfs_to_plot, 'ro-')
-            plt.title('Array: %s, Gas: %s' % (list_of_array_ids[array], gas))
-            plt.savefig("saved_array_pmfs_binned_figures/%s/Array#%s_%s.png" % (timestamp, list_of_array_ids[array], gas))
-            plt.close(plot_PMF)
+        # X-axis, list of mole fracs to plot, for relevant gas
+        comps_to_plot = [bin[gas] for bin in bins][0:len(bins)-1]
+        # Y-axis, list of pmf values to plot
+        pmfs_to_plot = [row[array] for row in binned_probabilities if '%s bin' % gas in row.keys()]
+        # pdfs_to_plot = len(comps_to_plot) * np.array(pmfs_to_plot)
+        # Plot and save figure in a directory 'figures'
+        plt.plot(comps_to_plot, pmfs_to_plot, 'o-', color=colors[count], markersize=3)
+        count += 1
+
+    plt.legend([r'$CO_2$',r'$N_2$', r'$N_2$'], fontsize=8)
+    plt.tight_layout()
+    plt.savefig("/Users/brian_day/Desktop/binned_pmf_figs/%s.png" % (array))
+    plt.close()
