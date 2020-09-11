@@ -1,4 +1,3 @@
-import ast
 import csv
 import glob
 import numpy as np
@@ -517,20 +516,3 @@ def analyze_all_ratios(gas, sim_results_path, analysis_results_path, force_inter
             writer.writerow([row])
 
 
-def read_kH_results(filename):
-    with open(filename, newline='') as csvfile:
-        output_data = csv.reader(csvfile, delimiter="\t")
-        output_data = list(output_data)
-        full_array = []
-        for i in range(len(output_data)):
-            row = output_data[i][0]
-            row = row.replace('nan', '\'nan\'')
-            row = row.replace('inf', '\'inf\'')
-            row = row.replace('-\'inf\'', '\'-inf\'')
-            temp_array = []
-            temp_row = ast.literal_eval(row)
-            # if type(temp_row['R^2']) == str or temp_row['R^2'] < 0:
-            #     continue
-            temp_array.append(temp_row)
-            full_array.extend(temp_array)
-        return full_array
