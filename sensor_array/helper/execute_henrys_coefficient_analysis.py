@@ -43,22 +43,4 @@ for gas in gases:
     plot_all_kH(gas, combo_kH, figure_path+'All_kH_for_combo_air_'+str(gas)+'.png')
 
 
-breath_filepath = '/Users/brian_day/Desktop/HC_Work/breath-sample-results/healthy-samples/'
-files = list(glob.glob(breath_filepath+'*/*.csv'))
-_, b_test = import_simulated_data(files[0])
 
-# Might need to reincorporate as Nan and Inf start to reappear (only needed for very bad fits)
-# with open(filename, newline='') as csvfile:
-#     output_data = csv.reader(csvfile, delimiter="\t")
-#     output_data = list(output_data)
-# full_array = []
-# for i in range(len(output_data)):
-#     print(i)
-#     row = output_data[32][0]
-#     row = row.replace('nan', '\'nan\'')
-#     row = row.replace('inf', '\'inf\'')
-#     row = row.replace('-\'inf\'', '\'-inf\'')
-#     temp_array = []
-#     temp_row = ast.literal_eval(row)
-#     temp_array.append(temp_row)
-#     full_array.extend(temp_array)
