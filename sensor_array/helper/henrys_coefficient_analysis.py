@@ -467,14 +467,6 @@ def analyze_all_ratios(gas, sim_results_path, analysis_results_path, force_inter
                 for row in all_data:
                     writer.writerow(row)
 
-        # Plot Adsorption Data
-        figname = analysis_results_path+mof_name+'_ads_data.png'
-        all_comps = [comps, comps, comps]
-        all_masses = [mass, mass_air, total_mass]
-        all_errors = [error, error_air, total_error]
-        gases = [gas, 'Air', 'Total']
-        plot_adsorbed_masses(all_comps, all_masses, all_errors, gases, figname=figname, gas_name=gas, mof_name=mof_name)
-
         # Calculate kH - Henry's Gas
         if force_intercept_hg == True:
             kH, max_comp, R2, RMSE, i_offset = calculate_kH_fixed_intercept(comps, mass, error, eval_type=hg_eval_type, r2_min=r2_min_hg, rmse_min=rmse_min_hg, weight=weight, counter=counter)
@@ -483,10 +475,6 @@ def analyze_all_ratios(gas, sim_results_path, analysis_results_path, force_inter
             kH, intercept, max_comp, R2, RMSE, i_offset = calculate_kH(comps, mass, error, eval_type=hg_eval_type, r2_min=r2_min_hg, rmse_min=rmse_min_hg, weight=weight, counter=counter)
         else:
             print('Invalid Intercept Option!')
-
-        if kH != None:
-            figname = analysis_results_path+mof_name+'_kH.png'
-            plot_kH_single_gas(comps, mass, error, max_comp, float(kH), intercept, R2, figname=figname, gas_name=gas, mof_name=mof_name)
 
         temp_dict_hg['k_H'] = kH
         # temp_dict_hg['Intercept'] = intercept
@@ -503,12 +491,6 @@ def analyze_all_ratios(gas, sim_results_path, analysis_results_path, force_inter
                 kH, intercept, max_comp, R2, RMSE, _ = (None, 0, 0, 0, 0, 0)
         else:
             kH, intercept, max_comp, R2, RMSE, _ = calculate_kH(comps_air, mass_air, error_air, eval_type=air_eval_type, r2_min=r2_min_air, rmse_min=rmse_min_air, weight=weight, flipped=True, counter=counter)
-
-        if kH != None:
-            # figname = analysis_results_path+mof_name+'_kH_air.png'
-            # plot_kH_air(comps_air, mass_air, error_air, max_comp, float(kH), intercept, R2, figname=figname, gas_name=gas, mof_name=mof_name)
-            figname = analysis_results_path+mof_name+'_kH_air_on_henry.png'
-            plot_kH_single_gas(comps, mass_air, error_air, max_comp, -float(kH), intercept+kH, R2, figname=figname, gas_name=gas, mof_name=mof_name)
 
         temp_dict_air['k_H'] = kH
         if kH != None:
