@@ -1,31 +1,14 @@
-# Code for caluclating the Henry's Constants for a variety of gas mixutres.
-
 import ast
-import copy
 import csv
 import glob
-import itertools
 import matplotlib
 import numpy as np
 import os
-import re
-import scipy.stats as ss
 import yaml
-
-from collections import OrderedDict
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 
-from generate_compositions import create_uniform_comp_list
 
-import time
-import tensorflow as tf
-import tensorflow_probability as tfp
-
-
-
-
-# ----- General Use -----
 def yaml_loader(filepath):
     with open(filepath, 'r') as yaml_file:
         data = yaml.load(yaml_file)
