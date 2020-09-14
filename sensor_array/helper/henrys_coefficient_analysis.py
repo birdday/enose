@@ -1,8 +1,8 @@
-import csv
 import glob
 import numpy as np
 import os
 import yaml
+import pandas as pd
 
 
 def yaml_loader(filepath):
@@ -11,27 +11,12 @@ def yaml_loader(filepath):
     return data
 
 
-def import_simulated_data(sim_results, sort_by_gas=False, gas_for_sorting=None):
-    with open(sim_results) as file:
-        reader = csv.DictReader(file, delimiter='\t')
-        reader_list = list(reader)
-        keys = reader.fieldnames
+def import_simulated_data(filename):
+    ads_data = pd.read_csv(filename, sep='\t', engine='python')
+    return ads_data
 
-        for row in reader_list:
-            # Isolate Mass Data since currently being assigned to single key
-            mass_data_temp = [float(val) for val in row[keys[2]].split(' ')]
-            num_gases = len(row)-len(mass_data_temp)-2
-            # Reassign Compositions
-            for i in range(num_gases):
-                row[keys[-num_gases+i]] = row[keys[i+3]]
-            # Reassign Masses
-            for i in range(num_gases*2+2):
-                row[keys[i+2]] = mass_data_temp[i]
 
-        if sort_by_gas == True:
-            reader_list = sorted(reader_list, key=lambda k: k[gas_for_sorting+'_comp'], reverse=False)
 
-        return keys, reader_list
 
 
 def calculate_kH(comps, mass, error, eval_type='R2', r2_min=0.99, rmse_min=0.10, weight='error', flipped=False, i_offset=0, counter=1):
@@ -289,7 +274,3 @@ def calculate_kH_fixed_intercept(comps, mass, error, eval_type='R2', r2_min=0.99
             raise NameError('Invalid eval_type!')
 
     return a[0], max_comp, R2, RMSE, len(comps)-i
-
-
-
-
