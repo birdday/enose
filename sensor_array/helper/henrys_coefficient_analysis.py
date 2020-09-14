@@ -1,12 +1,9 @@
 import ast
 import csv
 import glob
-import matplotlib
 import numpy as np
 import os
 import yaml
-import matplotlib as mpl
-from matplotlib import pyplot as plt
 
 
 def yaml_loader(filepath):
@@ -36,118 +33,6 @@ def import_simulated_data(sim_results, sort_by_gas=False, gas_for_sorting=None):
             reader_list = sorted(reader_list, key=lambda k: k[gas_for_sorting+'_comp'], reverse=False)
 
         return keys, reader_list
-
-
-
-
-# ----- Calculating Herny's Coefficients -----
-def plot_adsorbed_masses(all_comps, all_masses, all_errors, gases, figname=None, gas_name=None, mof_name=None):
-    plt.clf()
-    plt.figure(figsize=(4,3), dpi=600)
-
-    for i in range(len(gases)):
-        comps = all_comps[i]
-        mass = all_masses[i]
-        plt.plot(comps, mass, 'o', markersize=2, alpha=0.7)
-
-    if mof_name != None:
-        plt.title(mof_name)
-    plt.xlabel(gases[0]+' Mole Fractions')
-    plt.ylabel('Adsorbed Mass')
-    plt.legend(gases)
-    plt.tight_layout()
-    if figname != None:
-        plt.savefig(figname)
-    plt.close()
-
-
-def plot_kH_single_gas(comps, mass, error, max_comp, kH, intercept, R2, figname='None', gas_name='None', mof_name='None'):
-
-    # Initialize Figure
-    plt.clf()
-    plt.figure(figsize=(4,3), dpi=600)
-    if kH != None:
-        fit = np.poly1d([kH, intercept])
-        plt.plot(comps, fit(comps), 'r-')
-    plt.errorbar(comps, mass, error, marker='o', markersize=3, elinewidth=1, linewidth=0)
-    if mof_name != 'None':
-        plt.title(mof_name, fontsize=12)
-    if gas_name != 'None':
-        plt.xlabel(gas+' Mole Fraction', fontsize=10)
-    else:
-        plt.xlabel('Mole Fraction', fontsize=10)
-    plt.xticks(np.linspace(0,0.05,6), fontsize=8)
-    plt.ylabel('Adsorbed Mass\n[mg/g Framework]', fontsize=10)
-    plt.yticks(fontsize=8)
-    plt.ylim([0.75*(min(mass)-max(error)),1.25*(max(mass)+max(error))])
-    plt.tight_layout()
-    textstr='\n'.join(['K_H = '+str(np.round(kH, 2)),'Max. Comp. = '+str(np.round(max_comp, 3))])
-    props = dict(boxstyle='round', facecolor='white', alpha=1)
-    plt.text(0.3*max(comps), 1.08*max(mass)+max(error), textstr, fontsize=10, bbox=props)
-    plt.savefig(figname)
-    plt.close()
-
-
-def plot_kH_air(comps, mass, error, max_comp, kH, intercept, R2, figname='None', gas_name='None', mof_name='None'):
-    # Redefine the Fit
-    fit = np.poly1d([kH, intercept])
-
-    # Initialize Figure
-    plt.clf()
-    plt.figure(figsize=(4,3), dpi=600)
-    plt.plot(comps, fit(comps), 'r-')
-    plt.errorbar(comps, mass, error, marker='o', markersize=3, elinewidth=1, linewidth=0)
-    if mof_name != 'None':
-        plt.title(mof_name, fontsize=12)
-    if gas_name != 'None':
-        plt.xlabel(gas+' Mole Fraction', fontsize=10)
-    else:
-        plt.xlabel('Mole Fraction', fontsize=10)
-    # plt.xticks(np.linspace(0,0.05,6), fontsize=8)
-    plt.ylabel('Adsorbed Mass\n[mg/g Framework]', fontsize=10)
-    plt.yticks(fontsize=8)
-    plt.ylim([0,1.5*(max(mass)+max(error))])
-    plt.tight_layout()
-    textstr='\n'.join(['K_H = '+str(np.round(kH, 2)),'Max. Comp. = '+str(np.round(max_comp, 3))])
-    props = dict(boxstyle='round', facecolor='white', alpha=1)
-    plt.text(0.01, 1.4*(max(mass)+max(error)), textstr, fontsize=10, verticalalignment='top', bbox=props)
-    plt.savefig(figname)
-    plt.close()
-
-
-def plot_kH_multiple_gases(all_comps, all_masses, all_errors, kH, intercept, figname='None', gas_name='None', mof_name='None'):
-    # Define Colors
-    cmap_vals = np.linspace(0,1,2)
-    colors = [mpl.cm.bwr(x) for x in cmap_vals]
-
-    # Initialize Figure
-    plt.clf()
-    plt.figure(figsize=(4,3), dpi=600)
-
-    for i in range(all_comps):
-        kH = all_kHs[i]
-        comps = all_comps[i]
-        mass = all_masses[i]
-        error = all_errors[i]
-        intercepts = all_intercepts[i]
-
-        fit = np.poly1d([kH, intercept])
-        plt.plot(comps, fit(comps), 'r-')
-        plt.errorbar(comps, mass, error, marker='o', markersize=3, elinewidth=1, linewidth=0, color=colors[0])
-
-    # Define labels with respect to Henry's Gas (positionally first).
-    if mof_name != 'None':
-        plt.title(mof_name, fontsize=12)
-    if gas_name != 'None':
-        plt.xlabel(gas+' Mole Fraction', fontsize=10)
-    else:
-        plt.xlabel('Mole Fraction', fontsize=10)
-    plt.xticks(np.linspace(0,0.05,6), fontsize=8)
-    plt.ylabel('Absolute Loading\n[mg/g Framework]', fontsize=10)
-    plt.yticks(fontsize=8)
-    plt.tight_layout()
-    plt.savefig(figname)
-    plt.close()
 
 
 def calculate_kH(comps, mass, error, eval_type='R2', r2_min=0.99, rmse_min=0.10, weight='error', flipped=False, i_offset=0, counter=1):
@@ -667,35 +552,3 @@ def read_kH_results(filename):
             temp_array.append(temp_row)
             full_array.extend(temp_array)
         return full_array
-
-
-def plot_all_kH(gas, data, figname):
-    colors = mpl.cm.get_cmap('RdBu')
-    color0 = colors(0.80)
-    color1 = colors(0.20)
-
-    comps = []
-    khs = []
-    for row in data:
-        comps.extend([row['Maximum Composition']])
-        khs.extend([row['k_H']])
-
-    if gas != 'None':
-        if gas == 'CO2':
-            gas_for_title = '$CO_2$'
-        else:
-            gas_for_title = '$' + gas[0].upper() + gas[1::] +'$'
-
-    plt.clf()
-    plt.figure(figsize=(4.5,4.5), dpi=600)
-    plt.semilogy(comps,khs,'o', alpha=0.7, color=color0)
-    plt.ylim([1e-2,1e8])
-    plt.xlim([-0.001,0.051])
-    plt.title(gas_for_title+' in Air', fontsize=16)
-    plt.xlabel('Maximum Mole Fraction\n(End of Henry\'s Regime)', fontsize=16)
-    plt.ylabel('Henry\'s Coefficient\n[mg/g/mole fraction]',fontsize=16)
-    plt.xticks(fontsize=12)
-    plt.yticks(fontsize=12)
-    plt.tight_layout()
-    plt.savefig(figname)
-    plt.close()
