@@ -1,3 +1,4 @@
+import glob
 import numpy as np
 import yaml
 import pandas as pd
@@ -131,3 +132,31 @@ def calculate_kH_air(ads_data, gas, i, weight_type='error'):
     r2, rmse, ybar = calculate_r2_and_rmse(p, comps[0:i], mass[0:i])
 
     return p, r2, rmse
+
+
+def execute_henrys_coefficient_analysis(config_file):
+    data = yaml_loader(config_file)
+    gases = data['gases']
+    ads_data_directory = data['ads_data_directory']
+    results_directory = data['results_directory']
+
+    columns = ['MOF', 'gas_kh', 'gas_r2', 'gas_rmse', 'air_kh', 'air_r2', 'air_rmse', 'kh', 'pure_air_mass', 'max_comp']
+
+    for gas in gases:
+        df = pd.DataFrame(columns=columns)
+        all_files = list(glob.glob(ads_data_directory+gas+'/*.csv'))
+
+        for file in all_files:
+            ads_data = import_simulated_data(file)
+            mof = ads_data['MOF'][0]
+            p, max_comp, r2, rmse, i = calculate_kH(ads_data, gas, eval_type='R2', r2_min=0.99, weight_type='error', fixed_intercept=True)
+
+            if i != None:
+                p_air, r2_air, rmse_air = calculate_kH_air(ads_data, gas, i, weight_type='error')
+                row = [mof, float(p[0]), r2, rmse, float(p_air[0]), r2_air, rmse_air, float(p[0]+p_air[0]), float(p_air[1]), max_comp]
+            else:
+                row = [mof, p[0], r2, rmse, None, None, None, None, None, max_comp]
+
+            df = df.append(dict(zip(df.columns, row)), ignore_index=True)
+
+        df.to_csv(results_directory+gas+'.csv', sep='\t', index=False)
