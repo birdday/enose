@@ -1,6 +1,14 @@
 import csv
 import random
 import scipy.stats as stats
+import yaml
+
+
+def yaml_loader(filepath):
+    with open(filepath, 'r') as yaml_file:
+        data = yaml.load(yaml_file)
+    return data
+
 
 def convert_dict_to_molefrac(gases_dict):
     for key in gases_dict:
@@ -127,3 +135,13 @@ def create_breath_samples(gases_dict, num_samples, filename=None, randomseed=101
             writer.writerows(comp_list_only_values)
 
     return comp_list
+
+
+def execute_create_breath_samples(config_file):
+    data = yaml_loader(config_file)
+    composition_set = data['Composition_Set']
+    num_samples = data['num_samples']
+    filename = data['filename']
+    randomseed = data['randomseed']
+    composition_set_molefrac = convert_dict_to_molefrac(composition_set)
+    create_breath_samples(composition_set, num_samples, filename=filename, randomseed=randomseed)
