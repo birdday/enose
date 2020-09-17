@@ -9,18 +9,32 @@ def yaml_loader(filepath):
     return data
 
 
-def create_henrys_comp_list(trace_gases, trace_gas_comps, background_gases, background_gas_ratios, filepath=None):
-    bg_gas_total = np.sum(background_gas_ratios)
+def create_henrys_comp_list(trace_gases, trace_gas_comps, background_gases, background_gas_types, background_gas_values, filepath=None):
+
+    relative_ratios_total = np.sum([background_gas_values[i] for i in range(len(background_gases)) if background_gas_types[i] == 'relative'])
+
     comp_list = []
-    for i in range(len(henrys_comps)):
-        hg_comp = henrys_comps[i]
-        bg_comp = [(1-hg_comp)*ratio/bg_gas_total for ratio in background_gas_ratios]
-        comp_list_temp = [hg_comp]
-        comp_list_temp.extend(bg_comp)
-        comp_list.append(comp_list_temp)
+    for trace_gas_comp in trace_gas_comps:
+        bg_comps_dict = {gas: 0 for gas in background_gases}
+        for i in range(len(background_gases)):
+            gas = background_gases[i]
+            type = background_gas_types[i]
+            value = background_gas_values[i]
+            if type == 'fixed':
+                bg_comps_dict[gas] = value
+
+        total_comp = np.sum(list(bg_comps_dict.values()))+trace_gas_comp
+        for i in range(len(background_gases)):
+            gas = background_gases[i]
+            type = background_gas_types[i]
+            value = background_gas_values[i]
+            if type == 'relative':
+                bg_comps_dict[gas] = (1-total_comp)*value/relative_ratios_total
+        comp_set = [trace_gas_comp] + [bg_comps_dict[gas] for gas in background_gases]
+        comp_list.extend([comp_set])
 
     if filepath != None:
-        for gas in henrys_gases:
+        for gas in trace_gases:
             gases = [gas]+background_gases
             filename = filepath+gas+'.csv'
             with open(filename, 'w', newline='') as csvfile:
@@ -36,6 +50,7 @@ def execute_create_henrys_comp_list(config_file):
         trace_gases = data['trace_gases']
         trace_gas_comps = data['trace_gas_comps']
         background_gases = list(data['background_gases'].keys())
-        background_gas_ratios = [data['background_gases'][gas]['Value'] for gas in background_gases]
+        background_gas_types = [data['background_gases'][gas]['Type'] for gas in background_gases]
+        background_gas_values = [data['background_gases'][gas]['Value'] for gas in background_gases]
         filepath = data['filepath']
-        create_henrys_comp_list(trace_gases, trace_gas_comps, background_gases, background_gas_ratios, filepath=filepath)
+        create_henrys_comp_list(trace_gases, trace_gas_comps, background_gases, background_gas_types, background_gas_values, filepath=filepath)
