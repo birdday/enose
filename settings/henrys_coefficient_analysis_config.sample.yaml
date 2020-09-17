@@ -1,0 +1,3 @@
+gases: ['CO2']
+ads_data_directory: 'adsorption_data_sample/'
+results_directory: ''
