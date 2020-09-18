@@ -6,7 +6,6 @@ import csv
 import glob
 import itertools
 import math
-import matplotlib
 import numpy as np
 import os
 import random

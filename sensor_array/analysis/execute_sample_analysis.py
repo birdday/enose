@@ -222,29 +222,29 @@ for sample_type in sample_types:
                 writer.writerow([cycle_nums[n], *[all_comp_sets[gas][n]for gas in gases]])
 
         # Use to see how the range of compositions evolved over each cycle - Make a function for this later.
-        filepath_for_this_figure = full_sample_filepath
-        sa.plot_algorithm_progress_single_samples(gases, all_comp_sets, true_comp, cycle_nums, run_id, filepath_for_this_figure)
+        # filepath_for_this_figure = full_sample_filepath
+        # sa.plot_algorithm_progress_single_samples(gases, all_comp_sets, true_comp, cycle_nums, run_id, filepath_for_this_figure)
 
         # Analyze Probability / KLD
         # This step is incredibly slow due to the RAM needs of large arrays - Need to add a file which we write to / read for the array_pmf values to speed up whti process.
         # Also need to add plot limits
-        norm_factor = sa.calculate_p_max(len(array), error_amount_for_pmf)
-        all_array_pmfs_nnempf_mod = [[value/norm_factor for value in row] for row in all_array_pmfs_nnempf]
-        sa.plot_kld_progression_w_max_pmf(all_array_pmfs_nnempf_mod, all_array_pmfs_normalized, cycle_nums, figname=full_sample_filepath)
-        sa.plot_all_array_pmf(all_array_pmfs_nnempf_mod, figname=full_sample_filepath)
+        # norm_factor = sa.calculate_p_max(len(array), error_amount_for_pmf)
+        # all_array_pmfs_nnempf_mod = [[value/norm_factor for value in row] for row in all_array_pmfs_nnempf]
+        # sa.plot_kld_progression_w_max_pmf(all_array_pmfs_nnempf_mod, all_array_pmfs_normalized, cycle_nums, figname=full_sample_filepath)
+        # sa.plot_all_array_pmf(all_array_pmfs_nnempf_mod, figname=full_sample_filepath)
 
 
     # ----- Reload saved results -----
-    results_fullpath = results_filepath+'breath_sample_prediciton_'+sample_type+'.csv'
-
-    keys, results = sa.import_prediction_data(results_fullpath)
-    run_ids = [row[keys[0]] for row in results]
-    predicted_comps = [row[keys[2]] for row in results]
-    true_comps = [row[keys[3]] for row in results]
-
-    gas_limits_as_dict = {gas: gases_full[gas]['init_composition_limits'] for gas in gases}
-    sa.plot_predicted_vs_true_for_all_breath_samples(gases, gas_limits_as_dict, predicted_comps, true_comps, filepath=results_filepath+folder, sort_data=True, sort_by='ammonia')
-    sa.plot_prediction_error_for_all_breath_samples(gases, predicted_comps, true_comps, filepath=results_filepath+folder)
+    # results_fullpath = results_filepath+'breath_sample_prediciton_'+sample_type+'.csv'
+    # 
+    # keys, results = sa.import_prediction_data(results_fullpath)
+    # run_ids = [row[keys[0]] for row in results]
+    # predicted_comps = [row[keys[2]] for row in results]
+    # true_comps = [row[keys[3]] for row in results]
+    #
+    # gas_limits_as_dict = {gas: gases_full[gas]['init_composition_limits'] for gas in gases}
+    # sa.plot_predicted_vs_true_for_all_breath_samples(gases, gas_limits_as_dict, predicted_comps, true_comps, filepath=results_filepath+folder, sort_data=True, sort_by='ammonia')
+    # sa.plot_prediction_error_for_all_breath_samples(gases, predicted_comps, true_comps, filepath=results_filepath+folder)
 
 
 
