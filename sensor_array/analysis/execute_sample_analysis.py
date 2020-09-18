@@ -6,37 +6,6 @@ import os
 import sample_analysis as sa
 
 
-# ========= TEST SECTION ==========
-"""
-To Do list
-
--Write a function which reads the results from predicted breath Samples
--Visualize results in a way which makes sense
-    - All samples (1-48), separated by component (4 plots total)
-    - Same for true comp vs. simulated comp.
--Decide healthy/diseased cutoff & create a convolution matrix
--Generally, look for trends in data
-    -When do we over/under predict ammonia (high/low CO2?)
-    -Minimum and maximum deviation
-    -After what percent cutoff do we stray from true comp
-    -Should 'fraction_to_keep' be varied
-        Since points start to cluster you can relax how many points to keep
-    -Try other arrys/array Sizes
-    -Vary Corys method to weight results by certain gas
-
-"""
-
-"""
-Overall Procedure:
-    1. Evaluate / normalize element probability
-    2. Evaluate / normalize array probability
-    3. Re-order compositions by probability (high to low)
-    4. Keep top points / create new grid
-        4.1 Remove duplicate Points
-        4.2 Reformat as dict
-    5. Repeat from Step 1
-"""
-
 # ===== Load Relevant Information =====
 # config_file = mofs_filepath = sys.argv[1]
 config_file = 'config_files/sample_analysis_config_tests.yaml'
@@ -220,35 +189,3 @@ for sample_type in sample_types:
             writer.writerow(['Cycle Nums.', *[gas for gas in gases]])
             for n in range(len(cycle_nums)):
                 writer.writerow([cycle_nums[n], *[all_comp_sets[gas][n]for gas in gases]])
-
-        # Use to see how the range of compositions evolved over each cycle - Make a function for this later.
-        # filepath_for_this_figure = full_sample_filepath
-        # sa.plot_algorithm_progress_single_samples(gases, all_comp_sets, true_comp, cycle_nums, run_id, filepath_for_this_figure)
-
-        # Analyze Probability / KLD
-        # This step is incredibly slow due to the RAM needs of large arrays - Need to add a file which we write to / read for the array_pmf values to speed up whti process.
-        # Also need to add plot limits
-        # norm_factor = sa.calculate_p_max(len(array), error_amount_for_pmf)
-        # all_array_pmfs_nnempf_mod = [[value/norm_factor for value in row] for row in all_array_pmfs_nnempf]
-        # sa.plot_kld_progression_w_max_pmf(all_array_pmfs_nnempf_mod, all_array_pmfs_normalized, cycle_nums, figname=full_sample_filepath)
-        # sa.plot_all_array_pmf(all_array_pmfs_nnempf_mod, figname=full_sample_filepath)
-
-
-    # ----- Reload saved results -----
-    # results_fullpath = results_filepath+'breath_sample_prediciton_'+sample_type+'.csv'
-    # 
-    # keys, results = sa.import_prediction_data(results_fullpath)
-    # run_ids = [row[keys[0]] for row in results]
-    # predicted_comps = [row[keys[2]] for row in results]
-    # true_comps = [row[keys[3]] for row in results]
-    #
-    # gas_limits_as_dict = {gas: gases_full[gas]['init_composition_limits'] for gas in gases}
-    # sa.plot_predicted_vs_true_for_all_breath_samples(gases, gas_limits_as_dict, predicted_comps, true_comps, filepath=results_filepath+folder, sort_data=True, sort_by='ammonia')
-    # sa.plot_prediction_error_for_all_breath_samples(gases, predicted_comps, true_comps, filepath=results_filepath+folder)
-
-
-
-# Write a function which keeps track of all compositions, bin them in the end and calculate KLD?
-# Need to do this on a component basis
-# NON BOUNDED LIKELIHOOD VALUE, NORMALIZE ONLY AFTER ENTIRE RUN IS COMPLETE, THEN BIN, THEN REUSE KLD
-# Would need to eliminate double counted points (i.e. anything retained for 2+ cycles)
