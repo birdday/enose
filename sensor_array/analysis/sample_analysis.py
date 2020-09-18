@@ -150,23 +150,6 @@ def reformat_henrys_data(mof_list_filtered, data_hg_all, data_air_all, data_comb
     return data_hg_reformatted, data_air_reformatted, data_combo_reformatted
 
 
-def create_pseudo_simulated_data_from_dict(mof_list, comps, gases, henrys_data):
-
-    psd_dict = copy.deepcopy(comps)
-
-    for row in psd_dict:
-        for mof in mof_list:
-            mass = 0
-            for gas in gases:
-                if gas == 'Air':
-                    mass += henrys_data[mof]['Pure Air Mass']
-                else:
-                    mass += henrys_data[mof][gas+'_kH']*row[gas+'_comp']
-            row[mof] = mass
-
-    return psd_dict
-
-
 def create_pseudo_simulated_data_from_array(mof_list, comps, gases, henrys_data):
 
     masses_pure_air = [henrys_data[mof]['Pure Air Mass'] for mof in mof_list]
@@ -174,69 +157,6 @@ def create_pseudo_simulated_data_from_array(mof_list, comps, gases, henrys_data)
     simulated_masses = [masses_pure_air + np.sum(np.multiply(khs, row), axis=1) for row in comps]
 
     return simulated_masses
-
-
-def calculate_element_pmf(mof_list, simulated_data, breath_sample, error_type='fixed', error_amount=0.01):
-
-    element_pmf  = copy.deepcopy(simulated_data)
-    counter = 0
-    for row in element_pmf:
-        # Added counter to monitor speed
-        counter += 1
-        if int(counter % 20000) == 0:
-            print('\t',counter)
-        # Calculate Probability
-        for mof in mof_list:
-            exp_mass = breath_sample[mof]
-            exp_error = breath_sample[mof+'_error']
-            sim_mass = row[mof]
-
-            # Create distribution and calculate PMF
-            a, b = 0, np.inf
-            if error_type == 'fixed':
-                mu, sigma = float(exp_mass), float(error_amount)
-            elif error_type == 'relative':
-                mu, sigma = float(exp_mass), float(exp_error)
-            else:
-                raise(NameError('Invalid Error Type!'))
-            alpha, beta = ((a-mu)/sigma), ((b-mu)/sigma)
-
-            prob_singlepoint = ss.truncnorm.pdf(float(sim_mass), alpha, beta, loc=mu, scale=sigma)
-            row[mof+'_pmf'] = prob_singlepoint
-
-    # Normalize Probabilities
-    norm_factor_dict = {mof:0 for mof in mof_list}
-
-    for row in element_pmf:
-        for mof in mof_list:
-            norm_factor_dict[mof] += row[mof+'_pmf']
-
-    for row in element_pmf:
-        for mof in mof_list:
-            row[mof+'_pmf'] = row[mof+'_pmf'] / norm_factor_dict[mof]
-
-    return element_pmf
-
-
-def calculate_array_pmf(element_pmf, array, comps):
-    array_pmf = copy.deepcopy(element_pmf)
-
-    for row in array_pmf:
-        array_pmf_temp = 1
-        for mof in array:
-            array_pmf_temp *= row[mof+'_pmf']
-        row['Array_pmf'] = array_pmf_temp
-
-    norm_factor_array = np.sum([row['Array_pmf'] for row in array_pmf])
-    if norm_factor_array > 0:
-        for row in array_pmf:
-            row['Array_pmf'] = row['Array_pmf']/norm_factor_array
-    else:
-        raise(NameError('Total Array Probability 0. Check breath sample and error type/value.'))
-
-    array_pmf_sorted = sorted(array_pmf, key=lambda k: k['Array_pmf'], reverse = True)
-
-    return array_pmf, array_pmf_sorted
 
 
 def calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, std_dev=0.01):
@@ -259,49 +179,6 @@ def calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, s
     # sorted_indicies are NOT necessarily the same between nnempf_sorted and normalized_sorted since the elements are essentially given different "weights" by not normalizing their total probabilities.
 
     return element_pmfs, element_pmfs_normalized, array_pmfs_nnepmf, array_pmfs_nnepmf_sorted, array_pmfs_normalized, array_pmfs_normalized_sorted, sorted_indicies
-
-
-def subdivide_grid_from_dict(array_pmf_sorted, gases, spacing):
-    # old_points_to_keep = array_pmf_sorted[0:int(np.ceil(len(array_pmf_sorted)*fraction_to_keep))]
-    old_points_to_keep = array_pmf_sorted
-    new_grid_points = []
-
-    for point in old_points_to_keep:
-        old_point = [point[gas+'_comp'] for gas in gases if gas != 'Air']
-        new_points_by_component = []
-        for i in range(len(old_point)):
-            temp_set = []
-            temp_set.extend([old_point[i]])
-            if old_point[i]+spacing[i] <= 1:
-                temp_set.extend([old_point[i]+spacing[i]])
-            if old_point[i]-spacing[i] >= 0:
-                temp_set.extend([old_point[i]-spacing[i]])
-            new_points_by_component.extend([temp_set])
-        new_grid_points_temp = list(itertools.product(*new_points_by_component))
-        new_grid_points.extend(new_grid_points_temp)
-
-    # Remove Duplicate Points
-    new_grid_points = list(set(new_grid_points))
-
-    # Reformat New Grid Points as Dict
-    gases_wout_air = [gas for gas in gases if gas != 'Air']
-    grid_as_dict = []
-    for point in new_grid_points:
-        temp_dict = {}
-        for i in range(len(gases_wout_air)):
-            temp_dict[gases_wout_air[i]+'_comp'] = point[i]
-        grid_as_dict.extend([temp_dict])
-
-    for row in grid_as_dict:
-        total_comp = 0
-        for gas in gases:
-            if gas != 'Air':
-                total_comp += row[gas+'_comp']
-        row['Air_comp'] = 1-total_comp
-
-    new_grid_points = grid_as_dict
-
-    return new_grid_points
 
 
 def subdivide_grid_from_array(comps, gases, spacing):
