@@ -1,0 +1,23 @@
+num_samples: 50
+filename:
+randomseed: 101
+
+Composition_Set:
+  N2:
+    Type: 'background-r'
+    Values: [3, 5]
+    Gas-r: 'O2'
+  O2:
+    Type: 'background'
+  CO2:
+    Type: 'bounds'
+    Values: [2,5]
+    Units: 'percent'
+  Ammonia:
+    Type: 'stddev'
+    Values: [0.49,0.08]
+    Units: 'ppm'
+  Argon:
+    Type: 'bounds'
+    Values: [0.6,1.2]
+    Units: 'percent'
