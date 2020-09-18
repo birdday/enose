@@ -22,7 +22,6 @@ gases:
     convergence_limits: 1.0e-7
 
 # Algorithm Parameters
-algorithm_type: 'tensorflow'
 sample_types: ['diseased']
 true_comp_at_start: 'no'
 breath_samples_variation: 'perfect'

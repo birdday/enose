@@ -23,7 +23,6 @@ convergence_limits = {gas: gases_full[gas]['convergence_limits'] for gas in gase
 init_composition_limits = [gases_full[gas]['init_composition_limits'] for gas in gases]
 init_composition_spacing = [gases_full[gas]['init_composition_spacing'] for gas in gases]
 
-algorithm_type = data['algorithm_type']
 array = data['array']
 array_size = data['array_size']
 array_index = data['array_index']
@@ -52,13 +51,8 @@ henrys_data = data_combo_reformatted
 mof_list = mof_list_filtered
 
 # ----- Create initial grid of points as a dictionary -----
-if algorithm_type == 'scipy':
-    gases_w_air = gases+['Air']
-    comps_by_component, comps_raw = sa.create_uniform_comp_list(gases_w_air, init_composition_limits, init_composition_spacing, imply_final_gas_range=False, filter_for_1=False, round_at=None)
-    comps_as_dict = sa.comps_to_dict(comps_raw, gases)
-elif algorithm_type == 'tensorflow':
-    comps_by_component, comps_raw = sa.create_uniform_comp_list(gases, init_composition_limits, init_composition_spacing, imply_final_gas_range=False, filter_for_1=False, round_at=None)
-    comps_as_dict = sa.comps_to_dict(comps_raw, gases)
+comps_by_component, comps_raw = sa.create_uniform_comp_list(gases, init_composition_limits, init_composition_spacing, imply_final_gas_range=False, filter_for_1=False, round_at=None)
+comps_as_dict = sa.comps_to_dict(comps_raw, gases)
 
 # ----- Determine array if necessary -----
 if array == None:
@@ -123,15 +117,9 @@ for sample_type in sample_types:
         true_comp_values = [true_comp[gas+'_comp'] for gas in gases]
 
         # Create copy of initial composition set, Add true comp explicitly if desired
-        if algorithm_type == 'scipy':
-            comps = copy.deepcopy(comps_as_dict)
-        else:
-            comps = copy.deepcopy(comps_raw)
+        comps = copy.deepcopy(comps_raw)
         if true_comp_at_start == 'yes':
-            if algorithm_type == 'scipy':
-                comps.extend([true_comp])
-            elif algorithm_type =='tensorflow':
-                comps.extend([true_comp_values])
+            comps.extend([true_comp_values])
 
         # Alter breath sample if desired
         gases_temp = gases+['Air']
@@ -144,11 +132,7 @@ for sample_type in sample_types:
             breath_sample = almost_perfect_breath_sample
         breath_sample_masses = [breath_sample[mof] for mof in array]
 
-        if algorithm_type == 'scipy':
-            final_comp_set, exit_condition, cycle_nums, all_comp_sets, _, _  = sa.composition_prediction_algorithm(array, henrys_data_array, gases_temp, comps, init_composition_spacing, convergence_limits, breath_sample, num_cycles=num_cycles, pmf_convergence=1, fraction_to_keep=fraction_to_keep, error_type='fixed', error_amount=error_amount_for_pmf)
-        elif algorithm_type == 'tensorflow':
-            final_comp_set, exit_condition, cycle_nums, all_comp_sets, all_array_pmfs_nnempf, all_array_pmfs_normalized  = sa.composition_prediction_algorithm_new(array, henrys_data_array, gases, comps, init_composition_spacing, convergence_limits, breath_sample_masses, num_cycles=num_cycles, fraction_to_keep=fraction_to_keep, std_dev=error_amount_for_pmf)
-
+        final_comp_set, exit_condition, cycle_nums, all_comp_sets, all_array_pmfs_nnempf, all_array_pmfs_normalized  = sa.composition_prediction_algorithm_new(array, henrys_data_array, gases, comps, init_composition_spacing, convergence_limits, breath_sample_masses, num_cycles=num_cycles, fraction_to_keep=fraction_to_keep, std_dev=error_amount_for_pmf)
 
         # Write Final Results to File
         if i == 0:
