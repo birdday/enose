@@ -20,7 +20,6 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 
-# ----- General Use -----
 def yaml_loader(filepath):
     with open(filepath, 'r') as yaml_file:
         data = yaml.load(yaml_file)
@@ -50,7 +49,25 @@ def import_simulated_data(sim_results, sort_by_gas=False, gas_for_sorting=None):
         return keys, reader_list
 
 
-# ----- Prediciting Compositions -----
+def read_kH_results(filename):
+    with open(filename, newline='') as csvfile:
+        output_data = csv.reader(csvfile, delimiter="\t")
+        output_data = list(output_data)
+        full_array = []
+        for i in range(len(output_data)):
+            row = output_data[i][0]
+            row = row.replace('nan', '\'nan\'')
+            row = row.replace('inf', '\'inf\'')
+            row = row.replace('-\'inf\'', '\'-inf\'')
+            temp_array = []
+            temp_row = ast.literal_eval(row)
+            # if type(temp_row['R^2']) == str or temp_row['R^2'] < 0:
+            #     continue
+            temp_array.append(temp_row)
+            full_array.extend(temp_array)
+        return full_array
+
+
 def load_henrys_data(figure_path, gases):
     data_hg_all = []
     data_air_all = []
@@ -148,6 +165,100 @@ def reformat_henrys_data(mof_list_filtered, data_hg_all, data_air_all, data_comb
         data_combo_reformatted[mof] = temp_dict_manual
 
     return data_hg_reformatted, data_air_reformatted, data_combo_reformatted
+
+
+def create_uniform_comp_list(gases, gas_limits, spacing, filename=None, imply_final_gas_range=True, imply_final_gas_spacing=False, filter_for_1=True, round_at=None):
+    """
+    Function used to create a tab-delimited csv file of gas compositions for a set of gases with a
+    range of compositions. The compositions of the final gas in the list is calculated so that the
+    total mole fraction of the system is equal to 1 by default. This is true even if the composition
+    is supplied, however this behavior can be turned off, in which case the list will contain only
+    compositions in the given range which total to 1.
+    """
+
+    # Calculate the valid range of compositions for the final gas in the list.
+    if len(gases) == len(gas_limits)+1:
+        lower_limit_lastgas = 1-np.sum([limit[1] for limit in gas_limits])
+        if lower_limit_lastgas < 0:
+            lower_limit_lastgas = 0
+        upper_limit_lastgas = 1-np.sum([limit[0] for limit in gas_limits])
+        if upper_limit_lastgas > 1:
+            upper_limit_lastgas = 1
+        gas_limits_new = [limit for limit in gas_limits]
+        gas_limits_new.append([lower_limit_lastgas, upper_limit_lastgas])
+    elif len(gases) == len(gas_limits):
+        if imply_final_gas_range == True:
+            lower_limit_lastgas = 1-np.sum([limit[1] for limit in gas_limits[:-1]])
+            if lower_limit_lastgas < 0:
+                lower_limit_lastgas = 0
+            upper_limit_lastgas = 1-np.sum([limit[0] for limit in gas_limits[:-1]])
+            if upper_limit_lastgas > 1:
+                upper_limit_lastgas = 1
+            gas_limits_new = [limit for limit in gas_limits[:-1]]
+            gas_limits_new.append([lower_limit_lastgas, upper_limit_lastgas])
+        else:
+            gas_limits_new = gas_limits
+
+    # Determine the number of points for each gas for the given range and spacing.
+    if len(spacing) == 1:
+        number_of_values = [(limit[1]-limit[0])/spacing+1 for limit in gas_limits_new]
+        number_of_values_as_int = [int(value) for value in number_of_values]
+        if number_of_values != number_of_values_as_int:
+            print('Bad combination of gas limits and spacing! Double check output file.')
+        comps_by_gas = [np.linspace(gas_limits_new[i][0], gas_limits_new[i][1], number_of_values_as_int[i]) for i in range(len(gas_limits_new))]
+        all_comps = list(itertools.product(*comps_by_gas))
+
+    elif len(spacing) == len(gas_limits_new)-1:
+        number_of_values = [(gas_limits_new[i][1]-gas_limits_new[i][0])/spacing[i]+1 for i in range(len(gas_limits_new)-1)]
+        number_of_values_as_int = [int(value) for value in number_of_values]
+        comps_by_gas = [np.linspace(gas_limits_new[i][0], gas_limits_new[i][1], number_of_values_as_int[i]) for i in range(len(gas_limits_new)-1)]
+        all_comps_except_last = list(itertools.product(*comps_by_gas))
+        all_comps = []
+        for row in all_comps_except_last:
+            total = np.sum(row)
+            last_comp = 1 - total
+            if last_comp >=0 and last_comp >= gas_limits_new[-1][0] and last_comp <= gas_limits_new[-1][1]:
+                row += (last_comp,)
+            all_comps.extend([row])
+
+    elif len(spacing) == len(gas_limits_new):
+        number_of_values = np.round([(gas_limits_new[i][1]-gas_limits_new[i][0])/spacing[i]+1 for i in range(len(gas_limits_new))], 5)
+        number_of_values_as_int = [int(value) for value in number_of_values]
+        if imply_final_gas_spacing == True:
+            comps_by_gas = [np.linspace(gas_limits_new[i][0], gas_limits_new[i][1], number_of_values_as_int[i]) for i in range(len(gas_limits_new)-1)]
+            all_comps_except_last = list(itertools.product(*comps_by_gas))
+            all_comps = []
+            for row in all_comps_except_last:
+                total = np.sum(row)
+                last_comp = 1 - total
+                if last_comp >=0 and last_comp >= gas_limits_new[-1][0] and last_comp <= gas_limits_new[-1][1]:
+                    row += (last_comp,)
+                all_comps.extend([row])
+        if imply_final_gas_spacing == False:
+            if False in (number_of_values == number_of_values_as_int):
+                print('Bad combination of gas limits and spacing! Double check output file.')
+            comps_by_gas = [np.linspace(gas_limits_new[i][0], gas_limits_new[i][1], number_of_values_as_int[i]) for i in range(len(gas_limits_new))]
+            all_comps = list(itertools.product(*comps_by_gas))
+
+    # Filter out where total mole fractions != 1
+    all_comps_final = []
+    if filter_for_1 == True:
+        for row in all_comps:
+            if round_at != None:
+                row = np.round(row, round_at)
+            if np.sum(row) == 1:
+                all_comps_final.extend([row])
+    else:
+        all_comps_final = all_comps
+
+    # Write to file.
+    if filename != None:
+        with open(filename, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter='\t', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(gases)
+            writer.writerows(all_comps_final)
+
+    return comps_by_gas, all_comps_final
 
 
 def create_pseudo_simulated_data_from_array(mof_list, comps, gases, henrys_data):
@@ -387,176 +498,6 @@ def composition_prediction_algorithm_new(array, henrys_data, gases, comps, spaci
             comps = subdivide_grid_from_array(filtered_comps, gases, spacing)
 
 
-def create_uniform_comp_list(gases, gas_limits, spacing, filename=None, imply_final_gas_range=True, imply_final_gas_spacing=False, filter_for_1=True, round_at=None):
-    """
-    Function used to create a tab-delimited csv file of gas compositions for a set of gases with a
-    range of compositions. The compositions of the final gas in the list is calculated so that the
-    total mole fraction of the system is equal to 1 by default. This is true even if the composition
-    is supplied, however this behavior can be turned off, in which case the list will contain only
-    compositions in the given range which total to 1.
-    """
-
-    # Calculate the valid range of compositions for the final gas in the list.
-    if len(gases) == len(gas_limits)+1:
-        lower_limit_lastgas = 1-np.sum([limit[1] for limit in gas_limits])
-        if lower_limit_lastgas < 0:
-            lower_limit_lastgas = 0
-        upper_limit_lastgas = 1-np.sum([limit[0] for limit in gas_limits])
-        if upper_limit_lastgas > 1:
-            upper_limit_lastgas = 1
-        gas_limits_new = [limit for limit in gas_limits]
-        gas_limits_new.append([lower_limit_lastgas, upper_limit_lastgas])
-    elif len(gases) == len(gas_limits):
-        if imply_final_gas_range == True:
-            lower_limit_lastgas = 1-np.sum([limit[1] for limit in gas_limits[:-1]])
-            if lower_limit_lastgas < 0:
-                lower_limit_lastgas = 0
-            upper_limit_lastgas = 1-np.sum([limit[0] for limit in gas_limits[:-1]])
-            if upper_limit_lastgas > 1:
-                upper_limit_lastgas = 1
-            gas_limits_new = [limit for limit in gas_limits[:-1]]
-            gas_limits_new.append([lower_limit_lastgas, upper_limit_lastgas])
-        else:
-            gas_limits_new = gas_limits
-
-    # Determine the number of points for each gas for the given range and spacing.
-    if len(spacing) == 1:
-        number_of_values = [(limit[1]-limit[0])/spacing+1 for limit in gas_limits_new]
-        number_of_values_as_int = [int(value) for value in number_of_values]
-        if number_of_values != number_of_values_as_int:
-            print('Bad combination of gas limits and spacing! Double check output file.')
-        comps_by_gas = [np.linspace(gas_limits_new[i][0], gas_limits_new[i][1], number_of_values_as_int[i]) for i in range(len(gas_limits_new))]
-        all_comps = list(itertools.product(*comps_by_gas))
-
-    elif len(spacing) == len(gas_limits_new)-1:
-        number_of_values = [(gas_limits_new[i][1]-gas_limits_new[i][0])/spacing[i]+1 for i in range(len(gas_limits_new)-1)]
-        number_of_values_as_int = [int(value) for value in number_of_values]
-        comps_by_gas = [np.linspace(gas_limits_new[i][0], gas_limits_new[i][1], number_of_values_as_int[i]) for i in range(len(gas_limits_new)-1)]
-        all_comps_except_last = list(itertools.product(*comps_by_gas))
-        all_comps = []
-        for row in all_comps_except_last:
-            total = np.sum(row)
-            last_comp = 1 - total
-            if last_comp >=0 and last_comp >= gas_limits_new[-1][0] and last_comp <= gas_limits_new[-1][1]:
-                row += (last_comp,)
-            all_comps.extend([row])
-
-    elif len(spacing) == len(gas_limits_new):
-        number_of_values = np.round([(gas_limits_new[i][1]-gas_limits_new[i][0])/spacing[i]+1 for i in range(len(gas_limits_new))], 5)
-        number_of_values_as_int = [int(value) for value in number_of_values]
-        if imply_final_gas_spacing == True:
-            comps_by_gas = [np.linspace(gas_limits_new[i][0], gas_limits_new[i][1], number_of_values_as_int[i]) for i in range(len(gas_limits_new)-1)]
-            all_comps_except_last = list(itertools.product(*comps_by_gas))
-            all_comps = []
-            for row in all_comps_except_last:
-                total = np.sum(row)
-                last_comp = 1 - total
-                if last_comp >=0 and last_comp >= gas_limits_new[-1][0] and last_comp <= gas_limits_new[-1][1]:
-                    row += (last_comp,)
-                all_comps.extend([row])
-        if imply_final_gas_spacing == False:
-            if False in (number_of_values == number_of_values_as_int):
-                print('Bad combination of gas limits and spacing! Double check output file.')
-            comps_by_gas = [np.linspace(gas_limits_new[i][0], gas_limits_new[i][1], number_of_values_as_int[i]) for i in range(len(gas_limits_new))]
-            all_comps = list(itertools.product(*comps_by_gas))
-
-    # Filter out where total mole fractions != 1
-    all_comps_final = []
-    if filter_for_1 == True:
-        for row in all_comps:
-            if round_at != None:
-                row = np.round(row, round_at)
-            if np.sum(row) == 1:
-                all_comps_final.extend([row])
-    else:
-        all_comps_final = all_comps
-
-    # Write to file.
-    if filename != None:
-        with open(filename, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter='\t', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            writer.writerow(gases)
-            writer.writerows(all_comps_final)
-
-    return comps_by_gas, all_comps_final
-
-
-def read_kH_results(filename):
-    with open(filename, newline='') as csvfile:
-        output_data = csv.reader(csvfile, delimiter="\t")
-        output_data = list(output_data)
-        full_array = []
-        for i in range(len(output_data)):
-            row = output_data[i][0]
-            row = row.replace('nan', '\'nan\'')
-            row = row.replace('inf', '\'inf\'')
-            row = row.replace('-\'inf\'', '\'-inf\'')
-            temp_array = []
-            temp_row = ast.literal_eval(row)
-            # if type(temp_row['R^2']) == str or temp_row['R^2'] < 0:
-            #     continue
-            temp_array.append(temp_row)
-            full_array.extend(temp_array)
-        return full_array
-
-
-def invert_matrix(array):
-    if np.shape(array)[0] == np.shape(array)[1]:
-        inv = np.linalg.inv(array)
-    else:
-        inv = np.linalg.pinv(array)
-
-    return inv
-
-
-def analytical_solution(array, gases, henrys_data_array, breath_sample_masses, added_error=None):
-    pure_air_masses = [henrys_data_array[mof]['Pure Air Mass'] for mof in array]
-    m_prime = [breath_sample_masses[i] - pure_air_masses[i] for i in range(len(breath_sample_masses))]
-    henrys_matrix = [[henrys_data_array[mof][gas+'_kH'] for gas in gases] for mof in array]
-
-    array_inv = invert_matrix(henrys_matrix)
-    if added_error == None or added_error == 0:
-        m_prime_new = m_prime
-    else:
-        m_prime_new = [value + random.uniform(-1,1)*1e-4 for value in m_prime]
-
-    soln = np.matmul(array_inv, m_prime_w_error)
-    soln_in_dict_format = {gases[i]+'_comp':soln[i] for i in range(len(gases))}
-
-    return soln_in_dict_format
-
-
-def calculate_KLD_for_cycle(array_pmfs):
-    # This function requires NORMALIZED pmf values.
-
-    num_points = len(array_pmfs)
-    kld_max = math.log2(num_points)
-    kld = sum( [float(pmf)*math.log2(float(pmf)*num_points) for pmf in array_pmfs if pmf != 0] )
-    kld_norm = kld/kld_max
-
-    return kld_norm
-
-
-def calculate_p_max(num_elements, stddev):
-    # This will be a (very close) approximations of p_max, since it is a truncated normal, and thus the value at the mean could change slightly subject to the contraint that the area under the curve, which goes to infinity, is exactly 1.
-    distributions = tfp.distributions.TruncatedNormal(100, stddev, 0, np.inf)
-    element_pmf_max = distributions.prob(100)
-    array_pmf_max = element_pmf_max ** num_elements
-
-    return array_pmf_max
-
-
-def calculate_p_ratio(array_pmfs_sorted, p_max):
-    """
-    As long as each sensing element has a known associated std. dev. which is independent of composition, the maximum probability which could be assigned to a single point can be determined by mutliplyinf the individual max probabilities for each element. Thus, we can determine the ratio of the assigned probability of the maximum probability and use this as a metric to see how the predicition is improving.
-
-    May need to adjust earlier function to report non-normalized element and/or array pmf.
-    """
-    all_p_ratios = [p_i/p_max for p_i in array_pmfs_sorted]
-
-    return p_ratios
-
-
 def execute_sample_analysis(config_file):
     config_file = 'config_files/sample_analysis_config_tests.yaml'
     data = yaml_loader(config_file)
@@ -723,3 +664,60 @@ def execute_sample_analysis(config_file):
                 writer.writerow(['Cycle Nums.', *[gas for gas in gases]])
                 for n in range(len(cycle_nums)):
                     writer.writerow([cycle_nums[n], *[all_comp_sets[gas][n]for gas in gases]])
+
+
+def invert_matrix(array):
+    if np.shape(array)[0] == np.shape(array)[1]:
+        inv = np.linalg.inv(array)
+    else:
+        inv = np.linalg.pinv(array)
+
+    return inv
+
+
+def analytical_solution(array, gases, henrys_data_array, breath_sample_masses, added_error=None):
+    pure_air_masses = [henrys_data_array[mof]['Pure Air Mass'] for mof in array]
+    m_prime = [breath_sample_masses[i] - pure_air_masses[i] for i in range(len(breath_sample_masses))]
+    henrys_matrix = [[henrys_data_array[mof][gas+'_kH'] for gas in gases] for mof in array]
+
+    array_inv = invert_matrix(henrys_matrix)
+    if added_error == None or added_error == 0:
+        m_prime_new = m_prime
+    else:
+        m_prime_new = [value + random.uniform(-1,1)*1e-4 for value in m_prime]
+
+    soln = np.matmul(array_inv, m_prime_w_error)
+    soln_in_dict_format = {gases[i]+'_comp':soln[i] for i in range(len(gases))}
+
+    return soln_in_dict_format
+
+
+def calculate_KLD_for_cycle(array_pmfs):
+    # This function requires NORMALIZED pmf values.
+
+    num_points = len(array_pmfs)
+    kld_max = math.log2(num_points)
+    kld = sum( [float(pmf)*math.log2(float(pmf)*num_points) for pmf in array_pmfs if pmf != 0] )
+    kld_norm = kld/kld_max
+
+    return kld_norm
+
+
+def calculate_p_max(num_elements, stddev):
+    # This will be a (very close) approximations of p_max, since it is a truncated normal, and thus the value at the mean could change slightly subject to the contraint that the area under the curve, which goes to infinity, is exactly 1.
+    distributions = tfp.distributions.TruncatedNormal(100, stddev, 0, np.inf)
+    element_pmf_max = distributions.prob(100)
+    array_pmf_max = element_pmf_max ** num_elements
+
+    return array_pmf_max
+
+
+def calculate_p_ratio(array_pmfs_sorted, p_max):
+    """
+    As long as each sensing element has a known associated std. dev. which is independent of composition, the maximum probability which could be assigned to a single point can be determined by mutliplyinf the individual max probabilities for each element. Thus, we can determine the ratio of the assigned probability of the maximum probability and use this as a metric to see how the predicition is improving.
+
+    May need to adjust earlier function to report non-normalized element and/or array pmf.
+    """
+    all_p_ratios = [p_i/p_max for p_i in array_pmfs_sorted]
+
+    return p_ratios
