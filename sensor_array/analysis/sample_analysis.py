@@ -203,72 +203,6 @@ def subdivide_grid_from_array(comps, gases, spacing):
     return new_grid_points
 
 
-def bin_compositions_by_convergence_status(comps, gases, convergence_status, array_pmf):
-    # Determine which gases are used to create bins
-    gases_to_bin_by = []
-    for gas in gases:
-        if gas != 'Air' and convergence_status[gas] == False:
-            gases_to_bin_by.extend([gas])
-
-    # Create bins and convert to a dictionary fromat for clarity
-    all_comps_by_gas = {gas:[] for gas in gases_to_bin_by}
-    for gas in gases_to_bin_by:
-        all_comps_by_gas[gas] = list(set([comp[gas+'_comp'] for comp in comps]))
-    bins = list(itertools.product(*[all_comps_by_gas[gas] for gas in gases_to_bin_by]))
-    bins_as_dict = [{gases_to_bin_by[i]:bin[i] for i in range(len(gases_to_bin_by))} for bin in bins]
-
-    # Convert bins to tuples, and create list for storing full composition set, and for element/array pmf of bins
-    bins_as_keys = [tuple(bin.items()) for bin in bins_as_dict]
-    comps_by_bins = {key:[] for key in bins_as_keys}
-    pmf_by_bins = {key:[] for key in bins_as_keys}
-    bin_pmf_by_bins = {key:{mof:0 for mof in array} for key in bins_as_keys}
-
-    # Assign compositions to bins
-    for row in comps:
-        bin_key = tuple({gas:row[gas+'_comp'] for gas in gases_to_bin_by}.items())
-        comps_by_bins[bin_key].extend([row])
-
-    # Assign probability data to bins
-    for row in array_pmf:
-        bin_key = tuple({gas:row[gas+'_comp'] for gas in gases_to_bin_by}.items())
-        pmf_by_bins[bin_key].extend([row])
-
-    # Determine bin pmf
-    for key in bins_as_keys:
-        bin_pmf_by_bins[key]['Array_PMF'] = 0
-        for row in pmf_by_bins[key]:
-            for mof in array:
-                bin_pmf_by_bins[key][mof] += row[mof+'_pmf']
-            bin_pmf_by_bins[key]['Array_PMF'] += row['Array_pmf']
-
-    return comps_by_bins, pmf_by_bins, bin_pmf_by_bins
-
-
-def filter_binned_comps_by_probability(comps_by_bins, pmf_by_bins, bin_pmf_by_bins, gases, fraction_to_keep=0.037):
-
-    # Sort bin pmfs, and filter
-    bin_pmf_by_bins_sorted = sorted(bin_pmf_by_bins.items(), key=lambda item: item[1]['Array_PMF'], reverse=True)
-    bins_to_keep = [item[0] for item in bin_pmf_by_bins_sorted[0:int(np.ceil(len(bin_pmf_by_bins_sorted)*fraction_to_keep**0.5))] ]
-
-    # Unbin remaining compositions, and filter by comp. pmf
-    array_pmf_after_bin_filtering = [comp for bin in bins_to_keep for comp in pmf_by_bins[bin]]
-    array_pmf_after_bin_filtering_sorted = sorted(array_pmf_after_bin_filtering, key=lambda k: k['Array_pmf'], reverse = True)
-    comps_to_keep = array_pmf_after_bin_filtering_sorted[0:int(np.ceil(len(array_pmf_after_bin_filtering_sorted)*fraction_to_keep**0.5))]
-    comps_to_keep_clean = [ {gas+'_comp':row[gas+'_comp'] for gas in gases} for row in comps_to_keep ]
-
-    return comps_to_keep_clean
-
-
-def filter_unbinned_comps_by_probability(array_pmf_sorted, gases, fraction_to_keep=0.037):
-
-    # Unbin remaining compositions, and filter by comp. pmf
-    # array_pmf_sorted = sorted(array_pmf, key=lambda k: k['Array_pmf'], reverse = True)
-    comps_to_keep = array_pmf_sorted[0:int(np.ceil(len(array_pmf_sorted)*fraction_to_keep))]
-    comps_to_keep_clean = [ {gas+'_comp':row[gas+'_comp'] for gas in gases} for row in comps_to_keep ]
-
-    return comps_to_keep_clean
-
-
 def check_prediciton_of_known_comp(henrys_data_no_air_effect, henrys_data_only_air_effect, henrys_data_combo, gases, mof_list, known_comp):
 
     # Create set of gases without Air
@@ -317,93 +251,6 @@ def format_predicted_mass_as_breath_sample(predicted_mass, true_comp, run_id, ra
     return breath_sample
 
 
-def check_prediciton_of_known_comp_range(henrys_data_no_air_effect, henrys_data_only_air_effect, henrys_data_combo, gases, mof_list, known_comp):
-
-    # Create set of gases without Air
-    gases_no_air = [gas for gas in gases if gas != 'Air']
-
-    # Calculate the predicted mass (total and by component)
-    predicted_mass = {}
-    for mof in mof_list:
-        temp_dict={}
-        mass_temp_lb = 0
-        mass_temp_ub = 0
-        for gas in gases:
-
-            # Get adsorbed mass of pure air mixture
-            if gas == 'Air':
-                temp_dict['Pure Air Mass'] = henrys_data_combo[mof]['Pure Air Mass']
-                mass_temp_lb += henrys_data_combo[mof]['Pure Air Mass']
-                mass_temp_ub += henrys_data_combo[mof]['Pure Air Mass']
-                mass_temp_air_only_lb = henrys_data_combo[mof]['Pure Air Mass']
-                mass_temp_air_only_ub = henrys_data_combo[mof]['Pure Air Mass']
-
-                # Remove air displaced by other components
-                for gas_2 in gases_no_air:
-                    mass_temp_air_only_lb += -henrys_data_only_air_effect[mof][gas_2+'_kH']*max(known_comp[gas_2+'_comp'])
-                    mass_temp_air_only_ub += -henrys_data_only_air_effect[mof][gas_2+'_kH']*min(known_comp[gas_2+'_comp'])
-                temp_dict[gas+'_mass'] = [mass_temp_air_only_lb, mass_temp_air_only_ub]
-
-            # Get adsorbed mass of Henry's Gases
-            else:
-                mass_temp_lb += henrys_data_combo[mof][gas+'_kH']*min(known_comp[gas+'_comp'])
-                mass_temp_ub += henrys_data_combo[mof][gas+'_kH']*max(known_comp[gas+'_comp'])
-
-                temp_dict[gas+'_mass'] = list(henrys_data_no_air_effect[mof][gas+'_kH']*np.array(known_comp[gas+'_comp']))
-
-            temp_dict['Total_mass'] = [mass_temp_lb, mass_temp_ub]
-
-        predicted_mass[mof] = temp_dict
-
-    return predicted_mass
-
-
-def isolate_mass_by_component(predicted_mass, simulated_mass, gases, mof_list):
-    # Initialize Dict
-    adsorbed_masses = {gas:[] for gas in gases}
-    adsorbed_masses_error = {gas:[] for gas in gases}
-    predicted_masses = {gas:[] for gas in gases}
-
-    # Get experimental masses and errors
-    for mof in mof_list_filtered:
-        for gas in gases:
-            if gas == 'Air':
-                adsorbed_masses[gas].extend([simulated_mass[mof]['N2_mass']+simulated_mass[mof]['O2_mass']])
-                adsorbed_masses_error[gas].extend([simulated_mass[mof]['N2_error']+simulated_mass[mof]['O2_error']])
-            else:
-                adsorbed_masses[gas].extend([simulated_mass[mof][gas+'_mass']])
-                adsorbed_masses_error[gas].extend([simulated_mass[mof][gas+'_error']])
-
-    # Get predicted masses
-    for mof in mof_list_filtered:
-        for gas in gases:
-            predicted_masses[gas].extend([predicted_mass[mof][gas+'_mass']])
-
-    # Total mass for experimental data
-    adsorbed_mass_total = np.zeros(len(adsorbed_masses[gases[0]]))
-    adsorbed_mass_error_total = np.zeros(len(adsorbed_masses_error[gases[0]]))
-    for gas in gases:
-        adsorbed_mass_total = np.add(adsorbed_mass_total, adsorbed_masses[gas])
-        adsorbed_mass_error_total = np.add(adsorbed_mass_error_total, adsorbed_masses_error[gas])
-    adsorbed_masses['Total'] = list(adsorbed_mass_total)
-    adsorbed_masses_error['Total'] = list(adsorbed_mass_error_total)
-
-    # Total mass for predicted data
-    if len(predicted_masses[gases[0]][0]) == 1:
-        predicted_mass_total = np.zeros(len(predicted_masses[gases[0]]))
-        for gas in gases:
-            predicted_mass_total = np.add(predicted_mass_total, predicted_masses[gas])
-        predicted_masses['Total'] = list(predicted_mass_total)
-
-    else:
-        predicted_mass_total = np.zeros([len(predicted_masses[gases[0]]),2])
-        for gas in gases:
-            predicted_mass_total = np.add(predicted_mass_total, predicted_masses[gas])
-        predicted_masses['Total'] = list(predicted_mass_total)
-
-    return adsorbed_masses, adsorbed_masses_error, predicted_masses
-
-
 def comps_to_dict(comps, gases):
     comps_as_dict = []
     for row in comps:
@@ -413,61 +260,6 @@ def comps_to_dict(comps, gases):
         comps_as_dict.extend([temp_dict])
 
     return comps_as_dict
-
-
-def load_breath_samples(breath_filepath, mof_list_filtered):
-    # N.B. Somehow, only 48 diseased breath samples...
-    # 2 Breath samples had negative concentrations, and thus never ran - Fix this in create comps
-    files = list(glob.glob(breath_filepath+'*/*.csv'))
-
-    # Create a set of all breath samples for all mofs (from filtered list)
-    all_breath_samples = []
-    for file in files:
-        mof = re.split('/|_', file)[-2]
-        if mof == 'v2':
-            mof = mof = re.split('/|_', file)[-3]
-        if mof in mof_list_filtered:
-            _, breath_sample = import_simulated_data(file)
-            all_breath_samples.extend(breath_sample)
-
-    # Join results of the same breath sample
-    num_samples = int(len(all_breath_samples)/len(mof_list_filtered))
-    all_breath_samples_joined = []
-    run_id_new = 0
-    for row in all_breath_samples[0:num_samples]:
-
-        # Create a temp_dict to add all mof data too
-        temp_dict = {}
-        run_id_new += 1
-        row['Run ID New'] = run_id_new
-        temp_dict['Run ID New'] = run_id_new
-        gases = ['argon', 'ammonia', 'CO2', 'N2', 'O2']
-        for gas in gases:
-            temp_dict[gas+'_comp'] = row[gas+'_comp']
-
-        # Create a comp_dict to see if same sample
-        comp_dict = {}
-        gases = ['argon', 'ammonia', 'CO2', 'N2', 'O2']
-        for gas in gases:
-            comp_dict[gas+'_comp'] = row[gas+'_comp']
-
-        # Check all subsequent rows for match
-        for row_2 in all_breath_samples:
-            # row_count += 1
-            comp_dict_2 = {}
-            gases = ['argon', 'ammonia', 'CO2', 'N2', 'O2']
-            for gas in gases:
-                comp_dict_2[gas+'_comp'] = row_2[gas+'_comp']
-
-            if comp_dict == comp_dict_2:
-                row_2['Run ID New'] = run_id_new
-                mof = row_2['MOF'].split('_')[0]
-                temp_dict[mof] = row_2['total_mass']
-                temp_dict[mof+'_error'] = row_2['total_mass_error']
-
-        all_breath_samples_joined.extend([temp_dict])
-
-    return all_breath_samples, all_breath_samples_joined
 
 
 def load_breath_samples_alt(filename):
@@ -484,23 +276,6 @@ def load_breath_samples_alt(filename):
         keys = reader.fieldnames
 
     return keys, reader_list
-
-
-def reload_full_breath_sample(breath_sample, all_breath_samples):
-    breath_sample_full = []
-    for row in all_breath_samples:
-        if row['Run ID New'] == breath_sample['Run ID New']:
-            breath_sample_full .extend([row])
-
-    return breath_sample_full
-
-
-def reformat_full_breath_sample(breath_sample_full):
-    breath_sample_full_reformatted = {}
-    for row in breath_sample_full:
-        breath_sample_full_reformatted[row['MOF'].split('_')[0]] = row
-
-    return breath_sample_full_reformatted
 
 
 def get_true_composoition(breath_sample, gases):
@@ -520,28 +295,6 @@ def calculate_all_arrays_list(mof_list, num_mofs):
     mof_array_list.extend(list(itertools.combinations(mof_list, num_mofs)))
 
     return mof_array_list
-
-
-def import_prediction_data(prediction_results):
-    with open(prediction_results) as file:
-        reader = csv.reader(file, delimiter='\t')
-        reader_list = list(reader)
-        keys = reader_list[0]
-
-        prediction_results = []
-        for i in range(len(reader_list[1::])):
-            if int(i+0) % 4 == 0:
-                temp_dict = OrderedDict()
-                temp_dict[keys[0]] = int(reader_list[i+1][0])
-            elif int(i+3) % 4 == 0:
-                temp_dict[keys[1]] = str(reader_list[i+1][0])
-            elif int(i+2) % 4 == 0:
-                temp_dict[keys[2]] = ast.literal_eval(reader_list[i+1][0])
-            elif int(i+1) % 4 == 0:
-                temp_dict[keys[3]] = ast.literal_eval(reader_list[i+1][0])
-                prediction_results.extend([temp_dict])
-
-        return keys, prediction_results
 
 
 def composition_prediction_algorithm_new(array, henrys_data, gases, comps, spacing, convergence_limits, breath_sample_masses, num_cycles=10, fraction_to_keep=0.037, std_dev=0.10):
