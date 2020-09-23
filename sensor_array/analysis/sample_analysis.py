@@ -251,20 +251,10 @@ def comps_to_dataframe(comps, gases):
     return df
 
 
-def load_breath_samples_alt(filename):
-    gases = ['Argon', 'Ammonia', 'CO2', 'N2', 'O2']
-    new_keys = {'Argon': 'argon_comp', 'Ammonia': 'ammonia_comp', 'CO2': 'CO2_comp', 'N2': 'N2_comp', 'O2': 'O2_comp'}
+def load_breath_samples(filename):
+    breath_samples = pd.read_csv(filename, sep='\t', engine='python')
 
-    with open(filename) as file:
-        reader = csv.DictReader(file, delimiter='\t')
-        reader_list = list(reader)
-        for i in range(len(reader_list)):
-            reader_list[i]['Run ID New'] = int(i+1)
-            for gas in gases:
-                reader_list[i][new_keys[gas]] = reader_list[i].pop(gas)
-        keys = reader.fieldnames
-
-    return keys, reader_list
+    return breath_samples
 
 
 def get_true_composoition(breath_sample, gases):
@@ -425,10 +415,10 @@ def execute_sample_analysis(config_file):
     for sample_type in sample_types:
 
         # ----- Load Breath Samples -----
-        _, all_breath_samples_joined = load_breath_samples_alt(breath_samples_filepath)
+        all_breath_samples = load_breath_samples(breath_samples_filepath)
 
         # ========== Limit Breath Sample Range for Testing ==========
-        all_breath_samples_joined = all_breath_samples_joined[0:num_samples_to_test]
+        all_breath_samples = all_breath_samples.loc[0:num_samples_to_test-1]
 
         results_filename = 'breath_sample_prediciton_'+sample_type+'.csv'
         results_fullpath = results_filepath+results_filename
@@ -457,34 +447,21 @@ def execute_sample_analysis(config_file):
         os.mkdir(results_filepath+folder)
 
         # ----- Loop over all breath samples -----
-        for i in range(len(all_breath_samples_joined)):
+        for i in range(len(all_breath_samples)):
 
             print('Breath Sample = ', i)
 
             # Load single breath sample
-            breath_sample = all_breath_samples_joined[i]
-            run_id = breath_sample['Run ID New']
-
-            # Get true comp and predicted mass
-            gases_for_true_comp = gases+['N2', 'O2']
-            true_comp = get_true_composoition(breath_sample, gases_for_true_comp)
-            true_comp_values = [true_comp[gas+'_comp'] for gas in gases]
+            breath_sample = all_breath_samples.loc[i:i]
 
             # Create copy of initial composition set, Add true comp explicitly if desired
-            comps = copy.deepcopy(comps_raw)
             if true_comp_at_start == 'yes':
-                comps.extend([true_comp_values])
+                comps = comps.append({gas: float(breath_sample[gas]) for gas in comps.keys()}, ignore_index=True)
 
-            # Alter breath sample if desired
-            gases_temp = gases+['Air']
-            predicted_mass = check_prediciton_of_known_comp(data_hg_reformatted, data_air_reformatted, data_combo_reformatted, gases_temp, mof_list_filtered, true_comp)
-            if breath_samples_variation == 'perfect':
-                perfect_breath_sample = format_predicted_mass_as_breath_sample(predicted_mass, true_comp, run_id, random_error=False)
-                breath_sample = perfect_breath_sample
-            elif breath_samples_variation == 'almost perfect':
-                almost_perfect_breath_sample = format_predicted_mass_as_breath_sample(predicted_mass, true_comp, run_id, random_error=added_error_value, random_seed=seed_value)
-                breath_sample = almost_perfect_breath_sample
-            breath_sample_masses = [breath_sample[mof] for mof in array]
+            # Alter breath sample mass if desired
+            breath_sample_masses, _ = create_pseudo_simulated_data_from_array(array, breath_sample, gases, kh_dataframe)
+            if breath_samples_variation == 'almost perfect':
+                breath_sample_masses +=  + np.random.normal(loc=0.0, scale=added_error, size=len(breath_sample_masses))
 
             final_comp_set, exit_condition, cycle_nums, all_comp_sets = composition_prediction_algorithm_new(array, henrys_data_array, gases, comps, init_composition_spacing, convergence_limits, breath_sample_masses, num_cycles=num_cycles, fraction_to_keep=fraction_to_keep, std_dev=error_amount_for_pmf)
 
