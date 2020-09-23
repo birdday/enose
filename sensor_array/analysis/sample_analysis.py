@@ -353,7 +353,6 @@ def composition_prediction_algorithm_new(array, henrys_data, gases, comps, spaci
 
 
 def execute_sample_analysis(config_file):
-    config_file = 'config_files/sample_analysis_config_tests.yaml'
     data = yaml_loader(config_file)
 
     materials_config_file = data['materials_config_filepath']
@@ -470,37 +469,37 @@ def execute_sample_analysis(config_file):
                 with open(results_fullpath, 'w', newline='') as csvfile:
                     writer = csv.writer(csvfile, delimiter='\t', quotechar='|', quoting=csv.QUOTE_MINIMAL)
                     writer.writerow(['Run ID', 'Exit Condition', 'Predicted Comp.', 'True Comp.'])
-                    writer.writerow([breath_sample['Run ID New']])
+                    # writer.writerow([breath_sample['Run ID New']])
                     writer.writerow(['Exit Status = ', exit_condition])
                     writer.writerow([final_comp_set])
-                    writer.writerow([true_comp])
+                    # writer.writerow([true_comp])
                 with open(sample_fullpath, 'w', newline='') as csvfile:
                     writer = csv.writer(csvfile, delimiter='\t', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-                    writer.writerow([breath_sample['Run ID New']])
+                    # writer.writerow([breath_sample['Run ID New']])
                     writer.writerow([breath_sample])
                     writer.writerow([])
             else:
                 with open(results_fullpath, 'a', newline='') as csvfile:
                     writer = csv.writer(csvfile, delimiter='\t', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-                    writer.writerow([breath_sample['Run ID New']])
+                    # writer.writerow([breath_sample['Run ID New']])
                     writer.writerow(['Exit Status = ', exit_condition])
                     writer.writerow([final_comp_set])
-                    writer.writerow([true_comp])
+                    # writer.writerow([true_comp])
                 with open(sample_fullpath, 'a', newline='') as csvfile:
                     writer = csv.writer(csvfile, delimiter='\t', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-                    writer.writerow([breath_sample['Run ID New']])
+                    # writer.writerow([breath_sample['Run ID New']])
                     writer.writerow([breath_sample])
                     writer.writerow([])
 
-            # Write and Plot Results for Single Breath Sample
-            full_sample_filepath = results_filepath+folder+'Sample_'+str(run_id)+'/'
-            os.mkdir(full_sample_filepath)
-
-            # Write cycle results
-            cycle_results_filename = 'Sample'+str(run_id)+'.csv'
-            cycle_results_fullpath = full_sample_filepath+cycle_results_filename
-            with open(cycle_results_fullpath, 'w', newline='') as csvfile:
-                writer = csv.writer(csvfile, delimiter='\t', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-                writer.writerow(['Cycle Nums.', *[gas for gas in gases]])
-                for n in range(len(cycle_nums)):
-                    writer.writerow([cycle_nums[n], *[all_comp_sets[gas][n]for gas in gases]])
+            # # Write and Plot Results for Single Breath Sample
+            # full_sample_filepath = results_filepath+folder+'Sample_'+str(run_id)+'/'
+            # os.mkdir(full_sample_filepath)
+            #
+            # # Write cycle results
+            # cycle_results_filename = 'Sample'+str(run_id)+'.csv'
+            # cycle_results_fullpath = full_sample_filepath+cycle_results_filename
+            # with open(cycle_results_fullpath, 'w', newline='') as csvfile:
+            #     writer = csv.writer(csvfile, delimiter='\t', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            #     writer.writerow(['Cycle Nums.', *[gas for gas in gases]])
+            #     for n in range(len(cycle_nums)):
+            #       writer.writerow([cycle_nums[n], *[all_comp_sets[gas][n]for gas in gases]])
