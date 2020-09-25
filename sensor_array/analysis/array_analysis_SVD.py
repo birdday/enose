@@ -1,20 +1,5 @@
-"""
-This will be used to design/analyze arrays where we leverage the Henry's Coefficients rather than the
-GCMC simulations of the full composition space (impossible scale up).
-
-This work closely follows the work presented by Sturluson et al. (Cory Simon's Group) in the paper
-'Curating Metal Organic-Frameworks to Compose Robust Gas Sensor Arrays in Dilute Conditions' (2019).
-
-The primary analysis method is the Singular Value Decomposition (SVD) mapping the composition space
-to the sensor arrya response space.
-"""
-
-import ast
-import csv
 import itertools
 import numpy as np
-from numpy import linalg as nla
-import re
 import yaml
 
 def yaml_loader(filepath):
