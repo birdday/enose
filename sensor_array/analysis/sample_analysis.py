@@ -6,6 +6,7 @@ import itertools
 import math
 import numpy as np
 import os
+import pandas as pd
 import random
 import yaml
 
@@ -19,145 +20,22 @@ def yaml_loader(filepath):
     return data
 
 
-def import_simulated_data(sim_results, sort_by_gas=False, gas_for_sorting=None):
-    with open(sim_results) as file:
-        reader = csv.DictReader(file, delimiter='\t')
-        reader_list = list(reader)
-        keys = reader.fieldnames
+def load_filter_unite_henrys_data(filepath, gases, min_comp=0.0):
+    # ddf = dictionary of dataframes
+    ddf = {gas: pd.read_csv("%s%s.csv" %(filepath, gas), sep='\t', engine='python') for gas in gases}
+    ddf = {gas: ddf[gas][(np.isnan(ddf[gas].kh) == False) & (ddf[gas].max_comp >= 0.05)] for gas in gases}
+    all_mofs = [set(ddf[gas]['MOF']) for gas in gases]
+    common_mofs = all_mofs[0].intersection(*all_mofs[1::])
+    ddf = {gas: ddf[gas][ddf[gas].MOF.isin(common_mofs)] for gas in gases}
+    df_unified = pd.DataFrame(common_mofs, columns=['MOF'])
 
-        for row in reader_list:
-            # Isolate Mass Data since currently being assigned to single key
-            mass_data_temp = [float(val) for val in row[keys[2]].split(' ')]
-            num_gases = len(row)-len(mass_data_temp)-2
-            # Reassign Compositions
-            for i in range(num_gases):
-                row[keys[-num_gases+i]] = row[keys[i+3]]
-            # Reassign Masses
-            for i in range(num_gases*2+2):
-                row[keys[i+2]] = mass_data_temp[i]
-
-        if sort_by_gas == True:
-            reader_list = sorted(reader_list, key=lambda k: k[gas_for_sorting+'_comp'], reverse=False)
-
-        return keys, reader_list
-
-
-def read_kH_results(filename):
-    with open(filename, newline='') as csvfile:
-        output_data = csv.reader(csvfile, delimiter="\t")
-        output_data = list(output_data)
-        full_array = []
-        for i in range(len(output_data)):
-            row = output_data[i][0]
-            row = row.replace('nan', '\'nan\'')
-            row = row.replace('inf', '\'inf\'')
-            row = row.replace('-\'inf\'', '\'-inf\'')
-            temp_array = []
-            temp_row = ast.literal_eval(row)
-            # if type(temp_row['R^2']) == str or temp_row['R^2'] < 0:
-            #     continue
-            temp_array.append(temp_row)
-            full_array.extend(temp_array)
-        return full_array
-
-
-def load_henrys_data(figure_path, gases):
-    data_hg_all = []
-    data_air_all = []
-    data_combo_all = []
     for gas in gases:
-        filename_hg = '/Users/brian_day/Desktop/HC_Work/HenrysConstants_Analysis_Results/'+str(gas)+'_AllRatios/_henrys_coefficients_hg.csv'
-        filename_air = '/Users/brian_day/Desktop/HC_Work/HenrysConstants_Analysis_Results/'+str(gas)+'_AllRatios/_henrys_coefficients_air.csv'
-        data_hg = read_kH_results(filename_hg)
-        data_air = read_kH_results(filename_air)
-        data_hg_all.extend([data_hg])
-        data_air_all.extend([data_air])
+        df_unified[gas] = list(ddf[gas]['gas_kh'])
+        mass_constants = [list(ddf[gas]['pure_air_mass']) for gas in gases]
+        avg_mass_constants = np.sum(mass_constants, axis=0)/np.shape(mass_constants)[0]
+        df_unified['pure_air_mass'] = avg_mass_constants
 
-        data_combo_temp = []
-        for row_hg in data_hg:
-            row_combo_temp = {}
-            for row_air in data_air:
-                if row_hg['MOF'] == row_air['MOF']:
-                    row_combo_temp['Gas'] = row_hg['Gas']
-                    row_combo_temp['MOF'] = row_hg['MOF']
-                    row_combo_temp['Maximum Composition'] = row_hg['Maximum Composition']
-                    row_combo_temp['Pure Air Mass'] = row_air['Pure Air Mass']
-                    if row_hg['k_H'] != None and row_air['k_H'] != None:
-                        # Should be minus KH air since we fit it for increasing air, not increasing henry's gas (i.e. decreasing air).
-                        row_combo_temp['k_H'] = row_hg['k_H']-row_air['k_H']
-                    else:
-                        row_combo_temp['k_H'] = None
-            if row_combo_temp != {}:
-                data_combo_temp.extend([row_combo_temp])
-        data_combo_all.extend([data_combo_temp])
-
-    return data_hg_all, data_air_all, data_combo_all
-
-
-def filter_mof_list_and_average_pure_air_masses(mof_list, data_combo_all, min_allowed_comp=0.05):
-    data_combo_avg = []
-    for mof in mof_list:
-        temp_collection = []
-        for array in data_combo_all:
-            for row in array:
-                if row['MOF'].split('_')[0] == mof:
-                    temp_collection.extend([row])
-
-        max_comps = [row['Maximum Composition'] for row in temp_collection]
-
-        if min(max_comps) < min_allowed_comp:
-            continue
-
-        pure_air_mass_all = []
-        for row in temp_collection:
-            if row['Pure Air Mass'] != None:
-                pure_air_mass_all.extend([row['Pure Air Mass']])
-
-        pure_air_mass_average = sum(pure_air_mass_all)/len(pure_air_mass_all)
-        for row in temp_collection:
-            if row['Pure Air Mass'] != None:
-                row['Pure Air Mass'] = pure_air_mass_average
-
-        data_combo_avg.extend([temp_collection])
-
-    mof_list_filtered = [row[0]['MOF'].split('_')[0] for row in data_combo_avg]
-
-    return mof_list_filtered, data_combo_avg
-
-
-def reformat_henrys_data(mof_list_filtered, data_hg_all, data_air_all, data_combo_avg):
-    data_hg_reformatted = {}
-    for mof in mof_list_filtered:
-        temp_dict_manual = {}
-        for array in data_hg_all:
-            for row in array:
-                if row['MOF'].split('_')[0] == mof:
-                    gas = row['Gas']
-                    temp_dict_manual[gas+'_kH'] = row['k_H']
-        data_hg_reformatted[mof] = temp_dict_manual
-
-    data_air_reformatted = {}
-    for mof in mof_list_filtered:
-        temp_dict_manual = {}
-        for array in data_air_all:
-            for row in array:
-                if row['MOF'].split('_')[0] == mof:
-                    gas = row['Gas']
-                    temp_dict_manual[gas+'_kH'] = row['k_H']
-        data_air_reformatted[mof] = temp_dict_manual
-
-    data_combo_reformatted = {}
-    for mof in mof_list_filtered:
-        temp_dict_manual = {}
-        for array in data_combo_avg:
-            for row in array:
-                if row['MOF'].split('_')[0] == mof:
-                    temp_dict_manual['Pure Air Mass'] = row['Pure Air Mass']
-                    gas = row['Gas']
-                    temp_dict_manual[gas+'_kH'] = row['k_H']
-        data_combo_reformatted[mof] = temp_dict_manual
-
-    return data_hg_reformatted, data_air_reformatted, data_combo_reformatted
+    return df_unified, common_mofs
 
 
 def create_uniform_comp_list(gases, gas_limits, spacing, filename=None, imply_final_gas_range=True, imply_final_gas_spacing=False, filter_for_1=True, round_at=None):
@@ -254,16 +132,22 @@ def create_uniform_comp_list(gases, gas_limits, spacing, filename=None, imply_fi
     return comps_by_gas, all_comps_final
 
 
-def create_pseudo_simulated_data_from_array(mof_list, comps, gases, henrys_data):
+def create_pseudo_simulated_data_from_array(mof_list, comps_df, gases, kh_dataframe, append_to_df=False):
+    pure_air_masses = [float(kh_dataframe.loc[kh_dataframe['MOF'] == mof]['pure_air_mass']) for mof in mof_list]
+    khs = [[float(kh_dataframe.loc[kh_dataframe['MOF'] == mof][gas]) for gas in gases] for mof in mof_list]
+    # rows_temp = [row for row in np.transpose([list(comps[gas]) for gas in gases])]
+    rows_temp = comps_df.loc[:, gases].values.tolist()
+    # rows_temp = [[comps.loc[i][gas] for gas in gases] for i in range(len(comps))]
+    simulated_masses = [pure_air_masses + np.sum(np.multiply(khs, row), axis=1) for row in rows_temp]
 
-    masses_pure_air = [henrys_data[mof]['Pure Air Mass'] for mof in mof_list]
-    khs = [[henrys_data[mof][gas+'_kH'] for gas in gases] for mof in mof_list]
-    simulated_masses = [masses_pure_air + np.sum(np.multiply(khs, row), axis=1) for row in comps]
+    if append_to_df == True:
+        for i in range(len(mof_list)):
+            comps_df[mof_list[i]+'_mas'] = np.transpose(simulated_masses)[i]
 
-    return simulated_masses
+    return simulated_masses, comps_df
 
 
-def calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, std_dev=0.01):
+def calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, comps, array, std_dev=0.01, append_to_df=False):
 
     distributions = tfp.distributions.TruncatedNormal(simulated_masses, std_dev, 0, np.inf)
     element_pmfs = distributions.prob(breath_sample_masses)
@@ -277,6 +161,11 @@ def calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, s
     array_norm_factor = 1/np.sum(array_pmfs_nepmf, axis=0)
     array_pmfs_normalized = np.multiply(array_norm_factor, array_pmfs_nepmf)
 
+    if append_to_df == True:
+        for i in range(len(array)):
+            comps[array[i]+'_pmf'] = np.transpose(element_pmfs_normalized)[i]
+        comps['array_pmf'] = array_pmfs_normalized
+
     # array_pmfs_nnepmf_sorted = sorted(array_pmfs_nnepmf, reverse=True)
     array_pmfs_normalized_sorted = sorted(array_pmfs_normalized, reverse=True)
     sorted_indicies = list(reversed(np.argsort(array_pmfs_normalized)))
@@ -288,7 +177,7 @@ def calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, s
 def subdivide_grid_from_array(comps, gases, spacing):
 
     new_grid_points = []
-    for point in comps:
+    for point in comps.values.tolist():
         new_points_by_component = []
         for i in range(len(point)):
             temp_set = []
@@ -303,6 +192,7 @@ def subdivide_grid_from_array(comps, gases, spacing):
 
     # Remove Duplicate Points
     new_grid_points = list(set(new_grid_points))
+    new_grid_points = pd.DataFrame(new_grid_points, columns=gases)
 
     return new_grid_points
 
@@ -355,15 +245,10 @@ def format_predicted_mass_as_breath_sample(predicted_mass, true_comp, run_id, ra
     return breath_sample
 
 
-def comps_to_dict(comps, gases):
-    comps_as_dict = []
-    for row in comps:
-        temp_dict = {}
-        for i in range(len(gases)):
-            temp_dict[gases[i]+'_comp'] = row[i]
-        comps_as_dict.extend([temp_dict])
+def comps_to_dataframe(comps, gases):
+    df = pd.DataFrame(comps, columns=gases)
 
-    return comps_as_dict
+    return df
 
 
 def load_breath_samples_alt(filename):
@@ -410,13 +295,13 @@ def composition_prediction_algorithm_new(array, henrys_data, gases, comps, spaci
     convergence_status = {gas: False for gas in gases if gas !='Air'}
 
     # Record Initial Composition Range
-    for i in range(len(gases)):
-        #Get min/max component mole frac
-        gas = gases[i]
-        all_molefrac = [comps[j][i] for j in range(len(comps))]
-        min_molefrac = min(all_molefrac)
-        max_molefrac = max(all_molefrac)
-        all_comp_sets[gas].extend([[min_molefrac, max_molefrac]])
+    #Get min/max component mole frac
+    all_molefrac = comps.values
+    min_molefrac = all_molefrac.min(axis=0)
+    max_molefrac = all_molefrac.max(axis=0)
+    for g in range(len(gases)):
+        gas = gases[g]
+        all_comp_sets[gas].extend([[min_molefrac[g], max_molefrac[g]]])
 
     for i in range(num_cycles):
         # Keep track of cycles
@@ -426,7 +311,8 @@ def composition_prediction_algorithm_new(array, henrys_data, gases, comps, spaci
 
         # Convert from composition space to mass space to probability space
         print('\tCreate Pseudo-simulated Data...')
-        simulated_masses = create_pseudo_simulated_data_from_array(array, comps, gases, henrys_data)
+        # henrys_data = henrys_data_array
+        simulated_masses, comps = create_pseudo_simulated_data_from_array(array, comps, gases, henrys_data, append_to_df=True)
 
         print('\tCalculating Element / Array Probability')
         comps, sorted_indicies = calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, comps, array, std_dev=std_dev, append_to_df=True)
@@ -434,23 +320,22 @@ def composition_prediction_algorithm_new(array, henrys_data, gases, comps, spaci
         # Filter Out Low-Probability Compositions
         print('\tFiltering Low-probability Compositions.')
         filtered_indicies = sorted_indicies[0:int(np.ceil(fraction_to_keep*len(sorted_indicies)))]
-        filtered_comps = [comps[index] for index in filtered_indicies]
+        filtered_comps = comps.loc[filtered_indicies, gases]
         print('\tNumber of Comps. after filtering = ', len(filtered_comps))
 
         # Check / Update convergence status
+        all_molefrac = filtered_comps.values
+        min_molefrac = all_molefrac.min(axis=0)
+        max_molefrac = all_molefrac.max(axis=0)
+        molefrac_diff = max_molefrac-min_molefrac
         for g in range(len(gases)):
-            #Get min/max component mole frac
             gas = gases[g]
-            all_molefrac = [filtered_comps[j][g] for j in range(len(filtered_comps))]
-            min_molefrac = min(all_molefrac)
-            max_molefrac = max(all_molefrac)
-            molefrac_diff = max_molefrac-min_molefrac
-            all_comp_sets[gas].extend([[min_molefrac, max_molefrac]])
+            all_comp_sets[gas].extend([[min_molefrac[g], max_molefrac[g]]])
 
             # Check Convergence
-            final_comp_set[gas] = [min_molefrac, max_molefrac]
+            final_comp_set[gas] = [min_molefrac[g], max_molefrac[g]]
             if gas != 'Air':
-                if molefrac_diff <= convergence_limits[gas]:
+                if molefrac_diff[g] <= convergence_limits[gas]:
                     convergence_status[gas] = True
                 else:
                     convergence_status[gas] = False
@@ -514,22 +399,21 @@ def execute_sample_analysis(config_file):
 
 
     # ----- Load Henry's Coefficient Data ----
-    data_hg_all, data_air_all, data_combo_all = load_henrys_data(henrys_data_filepath, gases)
-    mof_list_filtered, data_combo_avg = filter_mof_list_and_average_pure_air_masses(mof_list, data_combo_all, min_allowed_comp=0.05)
-    data_hg_reformatted, data_air_reformatted, data_combo_reformatted = reformat_henrys_data(mof_list_filtered, data_hg_all, data_air_all, data_combo_avg)
-    henrys_data = data_combo_reformatted
-    mof_list = mof_list_filtered
+    kh_dataframe, _ = load_filter_unite_henrys_data(henrys_data_filepath, gases, min_comp=0.0)
+    henrys_data = kh_dataframe
+    mof_list = common_mofs
 
     # ----- Create initial grid of points as a dictionary -----
     comps_by_component, comps_raw = create_uniform_comp_list(gases, init_composition_limits, init_composition_spacing, imply_final_gas_range=False, filter_for_1=False, round_at=None)
-    comps_as_dict = comps_to_dict(comps_raw, gases)
+    comps = comps_to_dataframe(comps_raw, gases)
 
     # ----- Determine array if necessary -----
     if array == None:
-        list_of_arrays = calculate_all_arrays_list(mof_list_filtered, array_size)
-        array = list_of_arrays[array_index]
+        list_of_arrays = calculate_all_arrays_list(mof_list, array_size)
+        # array = list_of_arrays[array_index]
+        array = list_of_arrays[0]
 
-    henrys_data_array = {key: henrys_data[key] for key in array}
+    henrys_data_array = pd.DataFrame([kh_dataframe.loc[kh_dataframe['MOF'] == mof].values[0] for mof in array], columns=kh_dataframe.columns)
 
 
     # ----- Run Prediction Algorithm for Breath Samples! -----
@@ -562,7 +446,7 @@ def execute_sample_analysis(config_file):
             writer.writerow(['True Comp at Start = ', true_comp_at_start])
             writer.writerow(['Gas Limits = ', init_composition_limits])
             writer.writerow(['Gas Spacing = ', init_composition_spacing])
-            writer.writerow(['Number of Initial Comps. = ', len(comps_as_dict)])
+            writer.writerow(['Number of Initial Comps. = ', len(comps)])
             writer.writerow(['Fraction of Comps. Retained = ', fraction_to_keep])
             writer.writerow(['Error Type for Probability = ', error_type_for_pmf])
             writer.writerow(['Error Amount for Probability = ', error_amount_for_pmf])
