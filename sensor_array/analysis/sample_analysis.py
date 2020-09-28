@@ -277,12 +277,12 @@ def calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, s
     array_norm_factor = 1/np.sum(array_pmfs_nepmf, axis=0)
     array_pmfs_normalized = np.multiply(array_norm_factor, array_pmfs_nepmf)
 
-    array_pmfs_nnepmf_sorted = sorted(array_pmfs_nnepmf, reverse=True)
+    # array_pmfs_nnepmf_sorted = sorted(array_pmfs_nnepmf, reverse=True)
     array_pmfs_normalized_sorted = sorted(array_pmfs_normalized, reverse=True)
     sorted_indicies = list(reversed(np.argsort(array_pmfs_normalized)))
     # sorted_indicies are NOT necessarily the same between nnempf_sorted and normalized_sorted since the elements are essentially given different "weights" by not normalizing their total probabilities.
 
-    return element_pmfs, element_pmfs_normalized, array_pmfs_nnepmf, array_pmfs_nnepmf_sorted, array_pmfs_normalized, array_pmfs_normalized_sorted, sorted_indicies
+    return comps, sorted_indicies
 
 
 def subdivide_grid_from_array(comps, gases, spacing):
@@ -409,9 +409,6 @@ def composition_prediction_algorithm_new(array, henrys_data, gases, comps, spaci
     final_comp_set = {gas:[] for gas in gases}
     convergence_status = {gas: False for gas in gases if gas !='Air'}
 
-    all_array_pmfs_nnempf = []
-    all_array_pmfs_normalized = []
-
     # Record Initial Composition Range
     for i in range(len(gases)):
         #Get min/max component mole frac
@@ -432,12 +429,7 @@ def composition_prediction_algorithm_new(array, henrys_data, gases, comps, spaci
         simulated_masses = create_pseudo_simulated_data_from_array(array, comps, gases, henrys_data)
 
         print('\tCalculating Element / Array Probability')
-        _, element_pmfs_normalized, array_pmfs_nnepmf, array_pmfs_nnepmf_sorted, array_pmfs_normalized, array_pmfs_normalized_sorted, sorted_indicies = calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, std_dev=std_dev)
-
-        # Log array_pmfs
-        # Potentially a memory-hogging step which will need to use a temporary file to write to and read from.
-        all_array_pmfs_nnempf.extend([array_pmfs_nnepmf_sorted])
-        all_array_pmfs_normalized.extend([array_pmfs_normalized_sorted])
+        comps, sorted_indicies = calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, comps, array, std_dev=std_dev, append_to_df=True)
 
         # Filter Out Low-Probability Compositions
         print('\tFiltering Low-probability Compositions.')
@@ -477,7 +469,7 @@ def composition_prediction_algorithm_new(array, henrys_data, gases, comps, spaci
 
             print('Converged - Exiting!\n\n')
 
-            return final_comp_set, exit_condition, cycle_nums, all_comp_sets, all_array_pmfs_nnempf, all_array_pmfs_normalized
+            return final_comp_set, exit_condition, cycle_nums, all_comp_sets
 
         else:
             print('\tSubdividing Grid...\n')
@@ -610,7 +602,7 @@ def execute_sample_analysis(config_file):
                 breath_sample = almost_perfect_breath_sample
             breath_sample_masses = [breath_sample[mof] for mof in array]
 
-            final_comp_set, exit_condition, cycle_nums, all_comp_sets, all_array_pmfs_nnempf, all_array_pmfs_normalized  = composition_prediction_algorithm_new(array, henrys_data_array, gases, comps, init_composition_spacing, convergence_limits, breath_sample_masses, num_cycles=num_cycles, fraction_to_keep=fraction_to_keep, std_dev=error_amount_for_pmf)
+            final_comp_set, exit_condition, cycle_nums, all_comp_sets = composition_prediction_algorithm_new(array, henrys_data_array, gases, comps, init_composition_spacing, convergence_limits, breath_sample_masses, num_cycles=num_cycles, fraction_to_keep=fraction_to_keep, std_dev=error_amount_for_pmf)
 
             # Write Final Results to File
             if i == 0:
@@ -651,60 +643,3 @@ def execute_sample_analysis(config_file):
                 writer.writerow(['Cycle Nums.', *[gas for gas in gases]])
                 for n in range(len(cycle_nums)):
                     writer.writerow([cycle_nums[n], *[all_comp_sets[gas][n]for gas in gases]])
-
-
-def invert_matrix(array):
-    if np.shape(array)[0] == np.shape(array)[1]:
-        inv = np.linalg.inv(array)
-    else:
-        inv = np.linalg.pinv(array)
-
-    return inv
-
-
-def analytical_solution(array, gases, henrys_data_array, breath_sample_masses, added_error=None):
-    pure_air_masses = [henrys_data_array[mof]['Pure Air Mass'] for mof in array]
-    m_prime = [breath_sample_masses[i] - pure_air_masses[i] for i in range(len(breath_sample_masses))]
-    henrys_matrix = [[henrys_data_array[mof][gas+'_kH'] for gas in gases] for mof in array]
-
-    array_inv = invert_matrix(henrys_matrix)
-    if added_error == None or added_error == 0:
-        m_prime_new = m_prime
-    else:
-        m_prime_new = [value + random.uniform(-1,1)*1e-4 for value in m_prime]
-
-    soln = np.matmul(array_inv, m_prime_w_error)
-    soln_in_dict_format = {gases[i]+'_comp':soln[i] for i in range(len(gases))}
-
-    return soln_in_dict_format
-
-
-def calculate_KLD_for_cycle(array_pmfs):
-    # This function requires NORMALIZED pmf values.
-
-    num_points = len(array_pmfs)
-    kld_max = math.log2(num_points)
-    kld = sum( [float(pmf)*math.log2(float(pmf)*num_points) for pmf in array_pmfs if pmf != 0] )
-    kld_norm = kld/kld_max
-
-    return kld_norm
-
-
-def calculate_p_max(num_elements, stddev):
-    # This will be a (very close) approximations of p_max, since it is a truncated normal, and thus the value at the mean could change slightly subject to the contraint that the area under the curve, which goes to infinity, is exactly 1.
-    distributions = tfp.distributions.TruncatedNormal(100, stddev, 0, np.inf)
-    element_pmf_max = distributions.prob(100)
-    array_pmf_max = element_pmf_max ** num_elements
-
-    return array_pmf_max
-
-
-def calculate_p_ratio(array_pmfs_sorted, p_max):
-    """
-    As long as each sensing element has a known associated std. dev. which is independent of composition, the maximum probability which could be assigned to a single point can be determined by mutliplyinf the individual max probabilities for each element. Thus, we can determine the ratio of the assigned probability of the maximum probability and use this as a metric to see how the predicition is improving.
-
-    May need to adjust earlier function to report non-normalized element and/or array pmf.
-    """
-    all_p_ratios = [p_i/p_max for p_i in array_pmfs_sorted]
-
-    return p_ratios
