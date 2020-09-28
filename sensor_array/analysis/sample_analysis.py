@@ -1,21 +1,14 @@
 # Code for caluclating the Henry's Constants for a variety of gas mixutres.
 
-import ast
 import copy
 import csv
-import glob
 import itertools
 import math
 import numpy as np
 import os
 import random
-import re
-import scipy.stats as ss
 import yaml
 
-from collections import OrderedDict
-
-import time
 import tensorflow as tf
 import tensorflow_probability as tfp
 
@@ -436,16 +429,10 @@ def composition_prediction_algorithm_new(array, henrys_data, gases, comps, spaci
 
         # Convert from composition space to mass space to probability space
         print('\tCreate Pseudo-simulated Data...')
-        # start_time = time.time()
         simulated_masses = create_pseudo_simulated_data_from_array(array, comps, gases, henrys_data)
-        # elapsed_time = time.time() - start_time
-        # print('\t\tt =',elapsed_time,' s')
 
         print('\tCalculating Element / Array Probability')
-        # start_time = time.time()
         _, element_pmfs_normalized, array_pmfs_nnepmf, array_pmfs_nnepmf_sorted, array_pmfs_normalized, array_pmfs_normalized_sorted, sorted_indicies = calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, std_dev=std_dev)
-        # elapsed_time = time.time() - start_time
-        # print('\t\tt =',elapsed_time,' s')
 
         # Log array_pmfs
         # Potentially a memory-hogging step which will need to use a temporary file to write to and read from.
