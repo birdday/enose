@@ -35,7 +35,7 @@ def calculate_all_arrays(mof_list, array_size):
 
 def create_henrys_matrix(array, gases, kh_dataframe):
     df = kh_dataframe
-    h_matrix = [list(df.loc[df['MOF'].isin(array)][gas]) for gas in gases]
+    h_matrix = [list(df[df['MOF'].isin(array)][gas]) for gas in gases]
 
     return h_matrix
 
