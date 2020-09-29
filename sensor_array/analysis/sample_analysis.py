@@ -414,10 +414,7 @@ def execute_sample_analysis(config_file):
     for sample_type in sample_types:
 
         # ----- Load Breath Samples -----
-        all_breath_samples = load_breath_samples(breath_samples_filepath)
-
-        # ========== Limit Breath Sample Range for Testing ==========
-        all_breath_samples = all_breath_samples.loc[0:num_samples_to_test-1]
+        all_breath_samples = load_breath_samples(breath_samples_filepath).loc[0:num_samples_to_test-1]
 
         results_filename = 'breath_sample_prediciton_'+sample_type+'.csv'
         results_fullpath = results_filepath+results_filename
@@ -451,7 +448,7 @@ def execute_sample_analysis(config_file):
             print('Breath Sample = ', i)
 
             # Load single breath sample
-            breath_sample = all_breath_samples.loc[i:i]
+            breath_sample = all_breath_samples.loc[[i]]
 
             # Create copy of initial composition set, Add true comp explicitly if desired
             if true_comp_at_start == 'yes':
