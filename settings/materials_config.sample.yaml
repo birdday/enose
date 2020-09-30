@@ -1,0 +1,424 @@
+# edit this file and save as process_config.yaml when running locally
+# contains how many gas mixtures are added when interpolating, the range that is used for
+# calculating pmf, and the standard deviation of normal distributions around experimental masses
+# densities of mofs, experimental masses for each mof, the mofs included in the analysis, the gases
+# considered, and the mofs in the end array
+
+num_mixtures: 10
+num_bins: 31
+num_best_worst: 10
+mrange: .05
+stdev: 0.1
+
+number_mofs:
+  - 2
+  - 2
+
+gases:
+  - CO2
+  - N2
+  - O2
+
+mof_list:
+  - IRMOF-1
+  - HKUST-1
+  - NU-125
+  - UIO-66
+  - ZIF-8
+  - MgMOF-74
+  - MOF-177
+  - NU-100
+  - MOF-801
+  - ALUKIC
+  - AMIMAL
+  - AXUHEH
+  - BAZGAM
+  - BIWSEG
+  - EDUVOO
+  - FIDRIV
+  - GAGZEV
+  - GUPBEZ
+  - HABQUY
+  - HIFTOG
+  - JEWCAP
+  - KICXAX
+  - KIFJUF
+  - KINKAV
+  - LODPUQ
+  - LOFVUY
+  - MUDTEL
+  - NAYZOE
+  - NIBHOW
+  - NIBJAK
+  - OFEREX
+  - RAVXET
+  - RAVXIX
+  - RAVXOD
+  - RUTNOK
+  - SADLEQ
+  - SAPBIW
+  - SICZOV
+  - TOHSAL
+  - UKUPUL
+  - VETTIZ
+  - WIYMOG
+  - WUNSEE01
+  - XAFFAN
+  - XAFXOT
+  - XAHQAA
+  - XALTIP
+  - XUKYEI
+  - XUWVUG
+  - YEQRIV
+
+mofs:
+  IRMOF-1:
+    density: 0.590375
+    largest_cavity_diameter: 15.08377
+    pore_limiting_diameter: 7.95705
+    volumetric_surface_area: 2198.21
+    gravimetric_surface_area: 3723.41
+    void_fraction: 0.8108
+  HKUST-1:
+    density: 0.879099
+    largest_cavity_diameter: 13.18983
+    pore_limiting_diameter: 6.65676
+    volumetric_surface_area: 2114.54
+    gravimetric_surface_area: 2405.35
+    void_fraction: 0.7206
+  NU-125:
+    density: 0.57834
+    largest_cavity_diameter: 19.37323
+    pore_limiting_diameter: 6.76945
+    volumetric_surface_area: 2196.18
+    gravimetric_surface_area: 3797.39
+    void_fraction: 0.79
+  UIO-66:
+    density: 1.22494
+    largest_cavity_diameter: 8.88
+    pore_limiting_diameter: 3.79178
+    volumetric_surface_area: 1762.62
+    gravimetric_surface_area: 1438.95
+    void_fraction: 0.6128
+  ZIF-8:
+    density: 0.924676
+    largest_cavity_diameter: 11.51766
+    pore_limiting_diameter: 3.43919
+    volumetric_surface_area: 1442.14
+    gravimetric_surface_area: 1559.62
+    void_fraction: 0.6416
+  MgMOF-74:
+    density: 0.91487
+    largest_cavity_diameter: 11.63962
+    pore_limiting_diameter: 10.76348
+    volumetric_surface_area: 1549.21
+    gravimetric_surface_area: 1693.37
+    void_fraction: 0.6396
+  MOF-177:
+    density: 0.426775
+    largest_cavity_diameter: 11.67849
+    pore_limiting_diameter: 9.57613
+    volumetric_surface_area: 2035.73
+    gravimetric_surface_area: 4770.02
+    void_fraction: 0.8318
+  NU-100:
+    density: 0.2843005
+    largest_cavity_diameter: 27.190265
+    pore_limiting_diameter: 11.813005
+    volumetric_surface_area: 1620.675
+    gravimetric_surface_area: 5700.8
+    void_fraction: 0.8777
+  MOF-801:
+    density: 1.74184
+    largest_cavity_diameter: 7.65165
+    pore_limiting_diameter: 3.33374
+    volumetric_surface_area: 1303.21
+    gravimetric_surface_area: 748.177
+    void_fraction: 0.5322
+  ALUKIC:
+    density: 0.56692
+    largest_cavity_diameter: 8.54387
+    pore_limiting_diameter: 6.77342
+    volumetric_surface_area: 2883.21
+    gravimetric_surface_area: 5085.74
+    void_fraction: 0.7934
+  AMIMAL:
+    density: 0.988926
+    largest_cavity_diameter: 11.07211
+    pore_limiting_diameter: 9.50667
+    volumetric_surface_area: 1269.07
+    gravimetric_surface_area: 1283.28
+    void_fraction: 0.6132
+  AXUHEH:
+    density: 1.06453
+    largest_cavity_diameter: 7.21454
+    pore_limiting_diameter: 5.63203
+    volumetric_surface_area: 1024.66
+    gravimetric_surface_area: 962.545
+    void_fraction: 0.4958
+  BAZGAM:
+    density: 0.126526
+    largest_cavity_diameter: 42.79818
+    pore_limiting_diameter: 24.24061
+    volumetric_surface_area: 810.47
+    gravimetric_surface_area: 6405.57
+    void_fraction: 0.9392
+  BIWSEG:
+    density: 0.466941
+    largest_cavity_diameter: 29.73511
+    pore_limiting_diameter: 11.96997
+    volumetric_surface_area: 1434.98
+    gravimetric_surface_area: 3073.15
+    void_fraction: 0.843
+  EDUVOO:
+    density: 0.373403
+    largest_cavity_diameter: 20.93415
+    pore_limiting_diameter: 10.62864
+    volumetric_surface_area: 1788.47
+    gravimetric_surface_area: 4789.64
+    void_fraction: 0.862
+  FIDRIV:
+    density: 0.698397
+    largest_cavity_diameter: 15.99327
+    pore_limiting_diameter: 15.90265
+    volumetric_surface_area: 1517.46
+    gravimetric_surface_area: 2172.77
+    void_fraction: 0.7102
+  GAGZEV:
+    density: 0.279149
+    largest_cavity_diameter: 28.66522
+    pore_limiting_diameter: 11.53771
+    volumetric_surface_area: 1594.77
+    gravimetric_surface_area: 5712.98
+    void_fraction: 0.8816
+  GUPBEZ:
+    density: 2.5399
+    largest_cavity_diameter: 7.29165
+    pore_limiting_diameter: 4.38863
+    volumetric_surface_area: 489.614
+    gravimetric_surface_area: 192.769
+    void_fraction: 0.4518
+  HABQUY:
+    density: 0.289452
+    largest_cavity_diameter: 25.71531
+    pore_limiting_diameter: 12.0883
+    volumetric_surface_area: 1646.58
+    gravimetric_surface_area: 5688.62
+    void_fraction: 0.8738
+  HIFTOG:
+    density: 1.16582
+    largest_cavity_diameter: 7.95891
+    pore_limiting_diameter: 4.14066
+    volumetric_surface_area: 1897.92
+    gravimetric_surface_area: 1627.97
+    void_fraction: 0.6126
+  JEWCAP:
+    density: 1.11472
+    largest_cavity_diameter: 6.52252
+    pore_limiting_diameter: 4.08202
+    volumetric_surface_area: 880.16
+    gravimetric_surface_area: 789.582
+    void_fraction: 0.5446
+  KICXAX:
+    density: 3.58491
+    largest_cavity_diameter: 5.16268
+    pore_limiting_diameter: 4.57333
+    volumetric_surface_area: 368.423
+    gravimetric_surface_area: 102.77
+    void_fraction: 0.3658
+  KIFJUF:
+    density: 0.821526
+    largest_cavity_diameter: 5.86033
+    pore_limiting_diameter: 4.66309
+    volumetric_surface_area: 2412.21
+    gravimetric_surface_area: 2936.26
+    void_fraction: 0.648
+  KINKAV:
+    density: 1.21016
+    largest_cavity_diameter: 4.49986
+    pore_limiting_diameter: 3.74388
+    volumetric_surface_area: 462.625
+    gravimetric_surface_area: 382.283
+    void_fraction: 0.4526
+  LODPUQ:
+    density: 1.07351
+    largest_cavity_diameter: 6.04771
+    pore_limiting_diameter: 4.78066
+    volumetric_surface_area: 1496.3
+    gravimetric_surface_area: 1393.84
+    void_fraction: 0.5402
+  LOFVUY:
+    density: 1.07811
+    largest_cavity_diameter: 8.04365
+    pore_limiting_diameter: 4.63845
+    volumetric_surface_area: 1889.15
+    gravimetric_surface_area: 1752.28
+    void_fraction: 0.626
+  MUDTEL:
+    density: 0.559282
+    largest_cavity_diameter: 19.09514
+    pore_limiting_diameter: 6.59272
+    volumetric_surface_area: 2154.91
+    gravimetric_surface_area: 3853
+    void_fraction: 0.789
+  NAYZOE:
+    density: 0.498918
+    largest_cavity_diameter: 15.82314
+    pore_limiting_diameter: 6.52553
+    volumetric_surface_area: 2302.42
+    gravimetric_surface_area: 4614.84
+    void_fraction: 0.813
+  NIBHOW:
+    density: 0.279595
+    largest_cavity_diameter: 27.51057
+    pore_limiting_diameter: 14.88459
+    volumetric_surface_area: 1425.71
+    gravimetric_surface_area: 5099.19
+    void_fraction: 0.8844
+  NIBJAK:
+    density: 0.223433
+    largest_cavity_diameter: 32.00355
+    pore_limiting_diameter: 17.55175
+    volumetric_surface_area: 1188.94
+    gravimetric_surface_area: 5321.22
+    void_fraction: 0.9102
+  OFEREX:
+    density: 1.56791
+    largest_cavity_diameter: 6.99117
+    pore_limiting_diameter: 6.70761
+    volumetric_surface_area: 1544.85
+    gravimetric_surface_area: 985.293
+    void_fraction: 0.5694
+  RAVXET:
+    density: 0.326773
+    largest_cavity_diameter: 38.22812
+    pore_limiting_diameter: 38.06649
+    volumetric_surface_area: 945.437
+    gravimetric_surface_area: 2893.25
+    void_fraction: 0.8304
+  RAVXIX:
+    density: 0.23463
+    largest_cavity_diameter: 53.57674
+    pore_limiting_diameter: 53.26429
+    volumetric_surface_area: 734.576
+    gravimetric_surface_area: 3130.78
+    void_fraction: 0.8668
+  RAVXOD:
+    density: 0.179103
+    largest_cavity_diameter: 71.64119
+    pore_limiting_diameter: 71.50197
+    volumetric_surface_area: 619.991
+    gravimetric_surface_area: 3461.66
+    void_fraction: 0.8986
+  RUTNOK:
+    density: 0.240823
+    largest_cavity_diameter: 24.61263
+    pore_limiting_diameter: 14.64846
+    volumetric_surface_area: 1468.58
+    gravimetric_surface_area: 6098.18
+    void_fraction: 0.9018
+  SADLEQ:
+    density: 1.50504
+    largest_cavity_diameter: 7.11187
+    pore_limiting_diameter: 6.8054
+    volumetric_surface_area: 1508.7
+    gravimetric_surface_area: 1002.44
+    void_fraction: 0.5702
+  SAPBIW:
+    density: 0.305675
+    largest_cavity_diameter: 28.19349
+    pore_limiting_diameter: 23.23987
+    volumetric_surface_area: 915.118
+    gravimetric_surface_area: 2993.76
+    void_fraction: 0.889
+  SICZOV:
+    density: 0.419881
+    largest_cavity_diameter: 18.76086
+    pore_limiting_diameter: 11.86635
+    volumetric_surface_area: 1773.06
+    gravimetric_surface_area: 4222.76
+    void_fraction: 0.8408
+  TOHSAL:
+    density: 0.576207
+    largest_cavity_diameter: 9.79069
+    pore_limiting_diameter: 6.17903
+    volumetric_surface_area: 2737.54
+    gravimetric_surface_area: 4750.96
+    void_fraction: 0.7668
+  UKUPUL:
+    density: 1.43379
+    largest_cavity_diameter: 6.90717
+    pore_limiting_diameter: 5.2805
+    volumetric_surface_area: 1465.65
+    gravimetric_surface_area: 1022.22
+    void_fraction: 0.5222
+  VETTIZ:
+    density: 0.537597
+    largest_cavity_diameter: 21.62456
+    pore_limiting_diameter: 12.85426
+    volumetric_surface_area: 1117.38
+    gravimetric_surface_area: 2078.48
+    void_fraction: 0.7638
+  WIYMOG:
+    density: 0.408102
+    largest_cavity_diameter: 12.0545
+    pore_limiting_diameter: 7.54941
+    volumetric_surface_area: 2874.44
+    gravimetric_surface_area: 7043.44
+    void_fraction: 0.8306
+  WUNSEE01:
+    density: 1.20903
+    largest_cavity_diameter: 5.00556
+    pore_limiting_diameter: 4.25936
+    volumetric_surface_area: 749.985
+    gravimetric_surface_area: 620.32
+    void_fraction: 0.4842
+  XAFFAN:
+    density: 0.365184
+    largest_cavity_diameter: 14.91316
+    pore_limiting_diameter: 13.24304
+    volumetric_surface_area: 1896.05
+    gravimetric_surface_area: 5192.05
+    void_fraction: 0.8544
+  XAFXOT:
+    density: 1.88819
+    largest_cavity_diameter: 5.91185
+    pore_limiting_diameter: 4.82034
+    volumetric_surface_area: 647.785
+    gravimetric_surface_area: 343.072
+    void_fraction: 0.3646
+  XAHQAA:
+    density: 0.170429
+    largest_cavity_diameter: 23.03533
+    pore_limiting_diameter: 21.60719
+    volumetric_surface_area: 1040.62
+    gravimetric_surface_area: 6105.88
+    void_fraction: 0.9292
+  XALTIP:
+    density: 0.551216
+    largest_cavity_diameter: 18.68299
+    pore_limiting_diameter: 9.17237
+    volumetric_surface_area: 1809.24
+    gravimetric_surface_area: 3282.27
+    void_fraction: 0.7988
+  XUKYEI:
+    density: 0.287208
+    largest_cavity_diameter: 13.17229
+    pore_limiting_diameter: 10.75846
+    volumetric_surface_area: 1805.38
+    gravimetric_surface_area: 6285.97
+    void_fraction: 0.8682
+  XUWVUG:
+    density: 3.19434
+    largest_cavity_diameter: 3.95338
+    pore_limiting_diameter: 3.75922
+    volumetric_surface_area: 197.336
+    gravimetric_surface_area: 61.7769
+    void_fraction: 0.287
+  YEQRIV:
+    density: 0.74227
+    largest_cavity_diameter: 5.99633
+    pore_limiting_diameter: 4.79932
+    volumetric_surface_area: 3172.25
+    gravimetric_surface_area: 4273.71
+    void_fraction: 0.734

@@ -1,0 +1,39 @@
+# N.B. Currently "1e-5" would be interpreted as a string whereas "1.0e-5" will be interpreted as a float. Make sure to use the dot for correct functinality. Fixed in newer version of pyyaml I believe.
+
+# Filepaths
+henrys_data_filepath: '/Users/brian_day/Desktop/HC_Work/HenrysConstants_Analysis_Results_Orig/'
+breath_samples_filepath: '/Users/brian_day/Desktop/HC_Work/breath_samples_diseased.csv'
+results_filepath: '/Users/brian_day/Desktop/NewResults/Test7/'
+materials_config_filepath: '/Users/brian_day/Github-Repos/Sensor_Array/sensor_array/analysis/config_files/materials_configs.yaml'
+
+# Gas Sample
+gases:
+  CO2:
+    init_composition_limits: [0.02, 0.05]
+    init_composition_spacing: 1.25e-5
+    convergence_limits: 1.0e-3
+  argon:
+    init_composition_limits: [0.0, 0.012]
+    init_composition_spacing: 2.0e-3
+    convergence_limits: 1.0e-3
+  ammonia:
+    init_composition_limits: [0.0, 1.0e-5]
+    init_composition_spacing: 2.5e-7
+    convergence_limits: 1.0e-7
+
+# Algorithm Parameters
+sample_types: ['diseased']
+true_comp_at_start: 'no'
+breath_samples_variation: 'perfect'
+fraction_to_keep: 0.05
+error_type_for_pmf: 'fixed'
+error_amount_for_pmf: 0.05
+num_samples_to_test: 1
+num_cycles: 20
+added_error_value: 1.0e-4
+seed_value: 101
+
+# Array
+array:
+array_size: 5
+array_index: 14716
