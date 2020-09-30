@@ -135,10 +135,7 @@ def create_uniform_comp_list(gases, gas_limits, spacing, filename=None, imply_fi
 def create_pseudo_simulated_data_from_array(mof_list, comps_df, gases, kh_dataframe, append_to_df=False):
     pure_air_masses = [float(kh_dataframe.loc[kh_dataframe['MOF'] == mof]['pure_air_mass']) for mof in mof_list]
     khs = [[float(kh_dataframe.loc[kh_dataframe['MOF'] == mof][gas]) for gas in gases] for mof in mof_list]
-    # rows_temp = [row for row in np.transpose([list(comps[gas]) for gas in gases])]
-    rows_temp = comps_df.loc[:, gases].values.tolist()
-    # rows_temp = [[comps.loc[i][gas] for gas in gases] for i in range(len(comps))]
-    simulated_masses = [pure_air_masses + np.sum(np.multiply(khs, row), axis=1) for row in rows_temp]
+    simulated_masses = [pure_air_masses + np.sum(np.multiply(khs, row), axis=1) for row in comps_df[gases].values]
 
     if append_to_df == True:
         for i in range(len(mof_list)):
@@ -397,7 +394,7 @@ def execute_sample_analysis(config_file):
     for sample_type in sample_types:
 
         # ----- Load Breath Samples -----
-        all_breath_samples = load_breath_samples(breath_samples_filepath).loc[0:num_samples_to_test-1]
+        all_breath_samples = load_breath_samples(breath_samples_filepath)[0:num_samples_to_test]
 
         results_filename = 'breath_sample_prediciton_'+sample_type+'.csv'
         results_fullpath = results_filepath+results_filename
@@ -431,7 +428,7 @@ def execute_sample_analysis(config_file):
             print('Breath Sample = ', i)
 
             # Load single breath sample
-            breath_sample = all_breath_samples.loc[[i]]
+            breath_sample = all_breath_samples.iloc[[i]]
 
             # Create copy of initial composition set, Add true comp explicitly if desired
             if true_comp_at_start == 'yes':
