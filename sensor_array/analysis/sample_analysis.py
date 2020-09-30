@@ -228,23 +228,6 @@ def check_prediciton_of_known_comp(henrys_data_no_air_effect, henrys_data_only_a
     return predicted_mass
 
 
-def format_predicted_mass_as_breath_sample(predicted_mass, true_comp, run_id, random_error=False, random_seed=1):
-    breath_sample = {}
-    breath_sample['Run ID New'] = run_id
-    np.random.seed(random_seed)
-    for key in predicted_mass.keys():
-        breath_sample[key] = predicted_mass[key]['Total_mass']
-        if random_error != False:
-            breath_sample[key+'_error'] = np.random.uniform(-1*random_error, random_error)
-            breath_sample[key] += breath_sample[key+'_error']
-        else:
-            breath_sample[key+'_error'] = 0.0
-    for key in true_comp.keys():
-        breath_sample[key] = true_comp[key]
-
-    return breath_sample
-
-
 def comps_to_dataframe(comps, gases):
     df = pd.DataFrame(comps, columns=gases)
 
