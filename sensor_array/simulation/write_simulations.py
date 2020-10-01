@@ -1,23 +1,13 @@
-#!/usr/bin/env python3
-
-# ----------------------------------
-# ----- Import Python Packages -----
-# ----------------------------------
 import csv
 from datetime import datetime
-import numpy as np
 import os
 import pandas as pd
 import shutil
-import sjs
 import subprocess
-import sys
 from textwrap import dedent
 import yaml
 
-# -----------------------------------------
-# ----- User Defined Python Functions -----
-# -----------------------------------------
+
 def yaml_loader(filepath):
     with open(filepath, 'r') as yaml_file:
         data = yaml.load(yaml_file)
@@ -39,18 +29,11 @@ def read_mof_configuration_csv(filename):
     return mofs, unitcells
 
 
-def read_gases_configuration(filename):
-    with open(filename) as f:
-        return [ line.strip() for line in f.readlines() ]
-
-
 def read_composition_configuration(filename):
     return pd.read_csv(filename, sep='\t', engine='python')
 
 
-def write_raspa_file(filename, mof, unit_cell, pressure, gases, composition, config_file):
-    config_data = yaml_loader(config_file)
-    gas_names_def = config_data['Forcefield_Gas_Names']
+def write_raspa_file(filename, mof, unitcell, composition, pressure):
     f = open(filename,'w',newline='')
 
     simulation_file_header = """\
@@ -71,13 +54,12 @@ def write_raspa_file(filename, mof, unit_cell, pressure, gases, composition, con
 	UseChargesFromCIFFile yes
 	ExternalTemperature 298.0
 	ExternalPressure %s
-	""" % (mof, unit_cell, pressure)
+	""" % (mof, ' '.join([str(val) for val in unitcell]), pressure)
 
     f.write(dedent(simulation_file_header))
 
     component_number = 0
-    for gas in gases:
-        gas_name = gas_names_def[gas]
+    for gas in  composition.keys():
         mole_fraction = composition[gas]
         simulation_file_gas = """
     Component %s MoleculeName              %s
@@ -91,7 +73,7 @@ def write_raspa_file(filename, mof, unit_cell, pressure, gases, composition, con
                  SwapProbability            1.0
                  CreateNumberOfMolecules    0
 
-                 """ % (component_number, gas_name, mole_fraction)
+                 """ % (component_number, gas, mole_fraction)
 
         f.write(dedent(simulation_file_gas))
         component_number += 1
@@ -99,117 +81,50 @@ def write_raspa_file(filename, mof, unit_cell, pressure, gases, composition, con
     f.close()
 
 
-def parse_output(output_file):
-    mass = float(subprocess.check_output(['./calculate_mass.sh', output_file]))
-    return mass
-
-
-def run(run_id, mof, unit_cell, pressure, gases, composition, config_file, output_dir='output'):
-    # create unique working directory for this simulation
-    working_dir = os.path.join(output_dir, generate_unique_per_process_filename())
-    os.makedirs(working_dir, exist_ok=True)
-
-    # run simulation
-    write_raspa_file(os.path.join(working_dir, "simulation.input"), mof, unit_cell, pressure, gases,composition, config_file)
-    subprocess.run(['simulate', 'simulation.input'], check=True, cwd=working_dir)
-
-    # parse data from simulation
-    data_filename = os.path.join(working_dir, 'Output', 'System_0', '*.data')
-    mass = parse_output(data_filename)
-
-    # archive data and configuration; delete working_dir
-    run_descriptor = "%s" % (run_id)
-    archive_dir = os.path.join(output_dir, 'archive', run_descriptor)
-    os.makedirs(archive_dir, exist_ok=True)
-    for f in ["Output", "simulation.input"]:
-        shutil.move(os.path.join(working_dir, f), archive_dir)
-
-    shutil.rmtree(os.path.join(working_dir))
-
-    return (mass)
-
-
-def run_composition_simulation(run_id, mof, pressure, gases, composition, csv_writer=None, output_dir='output'):
-    # ----- If there is no csv_writer passed, we write to a file that is unique to this process -----
-    csv_file = None
-    if csv_writer is None:
-        results_dir = os.path.join(output_dir,'results')
-        os.makedirs(results_dir, exist_ok=True)
-        filename = os.path.join(results_dir, generate_unique_per_process_filename() + ".csv")
-        csv_file = open(filename,'a',newline='')
-        csv_writer = csv.writer(csv_file, delimiter='\t')
-    # ----- Run the simulation / Output the data -----
-    mass = run(run_id, mof, unit_cell, pressure, gases, composition, 'config_files/write_comps_config.yaml', output_dir=output_dir)
-    csv_writer.writerow([run_id, mof, mass, *[composition[gas] for gas in gases]])
-    # ----- Close the file, if we opened it above -----
-    if csv_file is not None:
-        csv_file.close()
-
-# --------------------------
-# ----- Some sjs stuff -----
-# --------------------------
-sjs.load(os.path.join("settings","sjs.yaml"))
-job_queue = sjs.get_job_queue()
-
-def execute_write_simulations(config_file):
-
+def write_all_raspa_files_and_database(config_file):
     data = yaml_loader(config_file)
     mofs, unitcells = read_mof_configuration_csv(data['mofs_filepath'])
     compositions = read_composition_configuration(data['comps_filepath'])
-    pressures = data['pressure']
+    pressure = data['pressure']
 
-    if job_queue is not None:
-        print("Queueing jobs onto queue: %s" % job_queue)
-        run_id_number = 0
+    all_input_files = []
 
-        for i in range(len(mofs)):
-            mof = mofs[i]
-            unitcell = unitcells[i]
+    main_dir = generate_unique_run_name()
+    os.makedirs(main_dir)
 
-            # --- Generate unique output directory ---
-            run_name = generate_unique_run_name()
-            output_dir = 'output_' + mof + '_%s' % run_name
-            os.makedirs(output_dir)
+    for i in range(len(mofs)):
+        mof, unitcell = mofs[i], unitcells[i]
 
-            # ----- Setup CSV file and write header -----
-            f = open(os.path.join(output_dir, mof+'.csv'),'w',newline='')
-            header = ['Run ID','MOF','Mass']
-            for gas in gases:
-                header.append(gas)
-            writer = csv.writer(f, delimiter='\t')
-            writer.writerow(header)
+        # --- Generate unique output directory ---
+        # output_dir = 'output_'+mof+'_'+generate_unique_run_name()
+        output_dir = main_dir+'/'+mof
+        os.makedirs(output_dir)
 
-            # --- Queue info for simulating ---
-            for pressure in pressures:
-                for composition in compositions:
-                    run_id = run_id_number
-                    job_queue.enqueue(run_composition_simulation, run_id, mof, unit_cell, pressure, gases, composition, csv_writer=None, output_dir=output_dir)
-                    run_id_number += 1
+        # ----- Setup CSV file and write header -----
+        f = open(os.path.join(output_dir, mof+'.csv'),'w',newline='')
+        # header = ['Run ID','MOF','Mass', *[gas for gas in compositions.keys()]]
+        header = ['MOF']
+        header.extend([gas+'_comp' for gas in compositions.keys()])
+        for gas in compositions.keys():
+            header.extend([gas+'_mass', gas+'_error'])
+        writer = csv.writer(f, delimiter='\t')
+        writer.writerow(header)
 
-    else:
-        print("No job queue is setup. Running in serial mode here rather than on the cluster")
-        for i in range(len(mofs)):
-            # --- Find the correspinging mof and unit cells ---
-            mof = mofs[i]
-            unit_cell = unit_cells[i]
+        # --- Queue info for simulating ---
+        for id, composition in compositions.iterrows():
+            # 1. Create a directory for storing simulation results.
+            # results_dir = os.path.join(output_dir,'results')
+            # os.makedirs(results_dir, exist_ok=True)
 
-            # --- Generate unique output directory ---
-            run_name = generate_unique_run_name()
-            output_dir = 'output_' + mof + '_%s' % run_name
-            os.makedirs(output_dir)
+            # 2. Create unique working directory for this simulation.
+            working_dir = os.path.join(output_dir, str(id))
+            os.makedirs(working_dir, exist_ok=True)
 
-            # ----- Setup CSV file and write header -----
-            f = open(os.path.join(output_dir, mof+'.csv'),'w',newline='')
-            header = ['Run ID','MOF','Mass']
-            for gas in gases:
-                header.append(gas)
-            writer = csv.writer(f, delimiter='\t')
-            writer.writerow(header)
+            # 3. Write the input file and run the simulation.
+            raspa_input_file = os.path.join(working_dir, "simulation.input")
+            write_raspa_file(raspa_input_file, mof, unitcell, composition, pressure)
+            shutil.copyfile('launch_workers.slurm', working_dir+'/launch_workers.slurm')
+            subprocess.run(['sbatch', 'launch_workers.slurm'], check=True, cwd=working_dir)
 
-            # --- Queue info for simulating ---
-            for pressure in pressures:
-                for composition in compositions:
-                    run_id = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
-                    run_composition_simulation(run_id, mof, unit_cell, pressure, gases, composition, csv_writer=writer, output_dir=output_dir)
-
-    f.close()
+config_file = '/Users/brian_day/Github-Repos/Sensor_Array/settings/write_simulations.sample.yaml'
+write_all_raspa_files_and_database(config_file)
