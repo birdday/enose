@@ -7,6 +7,7 @@ import csv
 from datetime import datetime
 import numpy as np
 import os
+import pandas as pd
 import shutil
 import sjs
 import subprocess
@@ -32,18 +33,10 @@ def generate_unique_per_process_filename():
 
 
 def read_mof_configuration_csv(filename):
-    openfile = open(filename, 'rt')
-    mofs_uc_csv = csv.reader(openfile, delimiter='\t')
-    mofs_uc = []
-    for i in mofs_uc_csv:
-        mofs_uc.append(i)
-    openfile.close()
-    mofs = []
-    unit_cells = []
-    for i in range(len(mofs_uc)):
-        mofs.append(mofs_uc[i][0])
-        unit_cells.append(" ".join(mofs_uc[i][1:]))
-    return mofs, unit_cells
+    mofs_unitcells = pd.read_csv(filename, sep='\t', engine='python')
+    mofs = mofs_unitcells['MOF_cif'].values
+    unitcells = mofs_unitcells[['a','b','c']].values
+    return mofs, unitcells
 
 
 def read_gases_configuration(filename):
@@ -52,16 +45,7 @@ def read_gases_configuration(filename):
 
 
 def read_composition_configuration(filename):
-    with open(filename,newline='') as csvfile:
-        comp_reader = csv.DictReader(csvfile, delimiter="\t")
-        return list(comp_reader)
-
-
-def read_pressure_configuration(filename):
-    with open(filename, newline='') as csvfile:
-        reader = csv.reader(csvfile, delimiter="\t")
-        pressures = [float(row[0]) for row in reader]
-        return pressures
+    return pd.read_csv(filename, sep='\t', engine='python')
 
 
 def write_raspa_file(filename, mof, unit_cell, pressure, gases, composition, config_file):
@@ -170,23 +154,17 @@ job_queue = sjs.get_job_queue()
 def execute_write_simulations(config_file):
 
     data = yaml_loader(config_file)
-    mofs_filepath = data['mofs_filepath']
-    compositions_filepath = data['comps_filepath']
-    gases_filepath = data['gases_filepath']
-    pressures_filepath = data['pressure']
-
-    mofs, unit_cells = read_mof_configuration_csv(mofs_filepath)
-    compositions = read_composition_configuration(compositions_filepath)
-    gases = read_gases_configuration(gases_filepath)
-    pressures = read_pressure_configuration(pressures_filepath)
+    mofs, unitcells = read_mof_configuration_csv(data['mofs_filepath'])
+    compositions = read_composition_configuration(data['comps_filepath'])
+    pressures = data['pressure']
 
     if job_queue is not None:
         print("Queueing jobs onto queue: %s" % job_queue)
         run_id_number = 0
+
         for i in range(len(mofs)):
-            # --- Find the correspinging mof and unit cells ---
             mof = mofs[i]
-            unit_cell = unit_cells[i]
+            unitcell = unitcells[i]
 
             # --- Generate unique output directory ---
             run_name = generate_unique_run_name()
