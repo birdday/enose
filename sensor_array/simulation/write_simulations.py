@@ -4,32 +4,31 @@
 # ----- Import Python Packages -----
 # ----------------------------------
 import csv
-import os
-import sys
 from datetime import datetime
-
 import numpy as np
-import sjs
-
-import subprocess
+import os
 import shutil
+import sjs
+import subprocess
+import sys
 from textwrap import dedent
 import yaml
 
 # -----------------------------------------
 # ----- User Defined Python Functions -----
 # -----------------------------------------
+def yaml_loader(filepath):
+    with open(filepath, 'r') as yaml_file:
+        data = yaml.load(yaml_file)
+    return(data)
+
+
 def generate_unique_run_name():
     return datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
 
 
 def generate_unique_per_process_filename():
     return "%s_%s" % (os.uname()[1], os.getpid())
-
-
-def read_gases_configuration(filename):
-    with open(filename) as f:
-        return [ line.strip() for line in f.readlines() ]
 
 
 def read_mof_configuration_csv(filename):
@@ -47,6 +46,11 @@ def read_mof_configuration_csv(filename):
     return mofs, unit_cells
 
 
+def read_gases_configuration(filename):
+    with open(filename) as f:
+        return [ line.strip() for line in f.readlines() ]
+
+
 def read_composition_configuration(filename):
     with open(filename,newline='') as csvfile:
         comp_reader = csv.DictReader(csvfile, delimiter="\t")
@@ -58,12 +62,6 @@ def read_pressure_configuration(filename):
         reader = csv.reader(csvfile, delimiter="\t")
         pressures = [float(row[0]) for row in reader]
         return pressures
-
-
-def yaml_loader(filepath):
-    with open(filepath, 'r') as yaml_file:
-        data = yaml.load(yaml_file)
-    return(data)
 
 
 def write_raspa_file(filename, mof, unit_cell, pressure, gases, composition, config_file):
