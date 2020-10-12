@@ -1,6 +1,6 @@
 # MOF Sensor Array: GCMC Simulations & Array Analysis
 
-https://travis-ci.org/birdday/Sensor_Array.svg?branch=master-birdday
+[![Build Status](https://travis-ci.org/birdday/Sensor_Array.svg?branch=master-birdday)](https://travis-ci.org/birdday/Sensor_Array)
 
 # Installation
 Clone the repository located in the [WilmerLab GitHub page] (https://github.com/WilmerLab/sensor_array_mof_adsorption).
