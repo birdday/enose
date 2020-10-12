@@ -16,6 +16,7 @@ setup(
         'pandas',
         'pyyaml',
 	'tensorflow',
+        'csv',
     ],
     extras_require={'plotting': ['matplotlib']}
     tests_require=['pytest']
