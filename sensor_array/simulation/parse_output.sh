@@ -38,6 +38,7 @@ for gas_mass in $(
 
   array+=( "$gas_mass" )
 
+  # Check is mass or error value
   if [ $counter -eq 0 ]; then
     temp_var=$gas_mass
     total_mass=$( echo "$total_mass + $gas_mass" | bc -l )
@@ -48,6 +49,7 @@ for gas_mass in $(
     total_mass_error=$( echo "$total_mass_error + $temp_var" | bc -l )
   fi
 
+  # Adjust counter 
   if [ $counter -eq 0 ]; then
     counter=1
   elif [ $counter -eq 1 ]; then

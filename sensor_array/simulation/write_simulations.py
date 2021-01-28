@@ -1,12 +1,12 @@
 import csv
-from datetime import datetime
 import os
-import pandas as pd
 import shutil
 import subprocess
+from datetime import datetime
 from textwrap import dedent
-import yaml
 
+import pandas as pd
+import yaml
 
 def yaml_loader(filepath):
     with open(filepath, 'r') as yaml_file:
@@ -89,20 +89,19 @@ def write_all_raspa_files_and_database(config_file):
 
     all_input_files = []
 
+    # 1. Make main directory with timestamp of submission
     main_dir = generate_unique_run_name()
     os.makedirs(main_dir)
 
     for i in range(len(mofs)):
         mof, unitcell = mofs[i], unitcells[i]
 
-        # --- Generate unique output directory ---
-        # output_dir = 'output_'+mof+'_'+generate_unique_run_name()
-        output_dir = main_dir+'/'+mof
-        os.makedirs(output_dir)
+        # 2. Generate unique directory per MOF
+        mof_dir = os.path.join(main_dir, mof)
+        os.makedirs(mof_dir)
 
-        # ----- Setup CSV file and write header -----
+        # 3. Setup .csv file and write header
         f = open(os.path.join(output_dir, mof+'.csv'),'w',newline='')
-        # header = ['Run ID','MOF','Mass', *[gas for gas in compositions.keys()]]
         header = ['MOF']
         header.extend([gas+'_comp' for gas in compositions.keys()])
         for gas in compositions.keys():
@@ -110,21 +109,13 @@ def write_all_raspa_files_and_database(config_file):
         writer = csv.writer(f, delimiter='\t')
         writer.writerow(header)
 
-        # --- Queue info for simulating ---
-        for id, composition in compositions.iterrows():
-            # 1. Create a directory for storing simulation results.
-            # results_dir = os.path.join(output_dir,'results')
-            # os.makedirs(results_dir, exist_ok=True)
+        # Queue simulations
+        for comp_id, composition in compositions.iterrows():
+            # 4. Create unique working directory for each simulation
+            sim_dir = os.path.join(mof_dir, str(comp_id))
+            os.makedirs(sim_dir, exist_ok=True)
 
-            # 2. Create unique working directory for this simulation.
-            working_dir = os.path.join(output_dir, str(id))
-            os.makedirs(working_dir, exist_ok=True)
-
-            # 3. Write the input file and run the simulation.
-            raspa_input_file = os.path.join(working_dir, "simulation.input")
+            # 5. Write the input file and run the simulation.
+            raspa_input_file = os.path.join(sim_dir, "simulation.input")
             write_raspa_file(raspa_input_file, mof, unitcell, composition, pressure)
-            shutil.copyfile('launch_workers.slurm', working_dir+'/launch_workers.slurm')
-            subprocess.run(['sbatch', 'launch_workers.slurm'], check=True, cwd=working_dir)
-
-config_file = '/Users/brian_day/Github-Repos/Sensor_Array/settings/write_simulations.sample.yaml'
-write_all_raspa_files_and_database(config_file)
+            subprocess.run(['sbatch', '../launch_workers.slurm'], check=True, cwd=sim_dir)
