@@ -1,0 +1,4 @@
+mofs_filepath: '/Users/brian_day/Github-Repos/Sensor_Array/settings/mofs_and_unitcells.sample.csv'
+comps_filepath: '/Users/brian_day/Github-Repos/Sensor_Array/settings/comps.sample.csv'
+
+pressure: 1
