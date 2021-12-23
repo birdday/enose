@@ -1,6 +1,6 @@
 # MOF Sensor Array: GCMC Simulations & Array Analysis
 
-[![Build Status](https://travis-ci.org/birdday/Sensor_Array.svg?branch=master-birdday)](https://travis-ci.org/birdday/Sensor_Array)
+[![eNose Test Status](https://github.com/birdday/enose/actions/workflows/python-app.yml/badge.svg?branch=unit-tests-creation)](https://github.com/birdday/enose/actions/workflows/python-app.yml)
 
 # Installation
 Clone the repository located in the [WilmerLab GitHub page] (https://github.com/WilmerLab/sensor_array_mof_adsorption).
