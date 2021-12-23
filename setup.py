@@ -16,7 +16,6 @@ setup(
         'pandas',
         'pyyaml',
 	'tensorflow',
-        'csv',
     ],
     extras_require={'plotting': ['matplotlib']}
 )
