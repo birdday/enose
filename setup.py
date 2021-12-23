@@ -19,5 +19,4 @@ setup(
         'csv',
     ],
     extras_require={'plotting': ['matplotlib']}
-    entry_points={'console_scripts': []},
 )
