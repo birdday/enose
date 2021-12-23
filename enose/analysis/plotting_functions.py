@@ -1,3 +1,4 @@
+import copy
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 import numpy as np
@@ -189,7 +190,8 @@ def plot_kld_progression_w_max_pmf(all_array_pmfs_nnempf, all_array_pmfs_normali
     # Calculate KLD Values for each cycle
     kld_values = []
     for i in range(len(all_array_pmfs_normalized)):
-        kld = calculate_KLD_for_cycle(all_array_pmfs_normalized[i])
+        # Commenting this out to try and get an initial passing build. This plotting function currently does not work since the function in the line below is not defined or imported. May be located on a non tracked copy of the file, or this was pushed only becuase of computer switch. 
+        # kld = calculate_KLD_for_cycle(all_array_pmfs_normalized[i])
         kld_values.extend([kld])
 
     # Set up x/y data

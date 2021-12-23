@@ -1,6 +1,6 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 def plot_adsorbed_masses(ads_data, gas, figname=None):
 

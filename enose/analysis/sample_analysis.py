@@ -368,7 +368,7 @@ def execute_sample_analysis(config_file):
 
 
     # ----- Load Henry's Coefficient Data ----
-    kh_dataframe, _ = load_filter_unite_henrys_data(henrys_data_filepath, gases, min_comp=0.0)
+    kh_dataframe, common_mofs = load_filter_unite_henrys_data(henrys_data_filepath, gases, min_comp=0.0)
     henrys_data = kh_dataframe
     mof_list = common_mofs
 
@@ -437,7 +437,7 @@ def execute_sample_analysis(config_file):
             # Alter breath sample mass if desired
             breath_sample_masses, _ = create_pseudo_simulated_data_from_array(array, breath_sample, gases, kh_dataframe)
             if breath_samples_variation == 'almost perfect':
-                breath_sample_masses +=  + np.random.normal(loc=0.0, scale=added_error, size=len(breath_sample_masses))
+                breath_sample_masses +=  + np.random.normal(loc=0.0, scale=added_error_value, size=len(breath_sample_masses))
 
             final_comp_set, exit_condition, cycle_nums, all_comp_sets = composition_prediction_algorithm_new(array, henrys_data_array, gases, comps, init_composition_spacing, convergence_limits, breath_sample_masses, num_cycles=num_cycles, fraction_to_keep=fraction_to_keep, std_dev=error_amount_for_pmf)
 

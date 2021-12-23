@@ -34,7 +34,7 @@ def create_weight_matrix(error, weight_type='error'):
         if len(weights_temp) != 0:
             weights = np.array([1/val if val != 0 else max(weights_temp) for val in error_squared])
         else:
-            weights = np.ones(len(error_sqaured))
+            weights = np.ones(len(error_squared))
 
     else:
         raise NameError('Invalid Error Type!')

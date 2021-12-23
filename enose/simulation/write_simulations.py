@@ -101,7 +101,7 @@ def write_all_raspa_files_and_database(config_file):
         os.makedirs(mof_dir)
 
         # 3. Setup .csv file and write header
-        f = open(os.path.join(output_dir, mof+'.csv'),'w',newline='')
+        f = open(os.path.join(mof_dir, mof+'.csv'),'w',newline='')
         header = ['MOF']
         header.extend([gas+'_comp' for gas in compositions.keys()])
         for gas in compositions.keys():
