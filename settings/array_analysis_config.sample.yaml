@@ -1,0 +1,4 @@
+filepath:
+gases: ['CO2', 'argon', 'ammonia']
+array_size: 3
+minimum_composition: 0.05
