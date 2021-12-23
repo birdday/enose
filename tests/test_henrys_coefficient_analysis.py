@@ -1,7 +1,7 @@
 import pytest
 from pytest import approx
 
-import sensor_array.helper.henrys_coefficient_analysis as hca
+import enose.helper.henrys_coefficient_analysis as hca
 
 
 def test_create_weight_matrix():
