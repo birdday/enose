@@ -19,6 +19,5 @@ setup(
         'csv',
     ],
     extras_require={'plotting': ['matplotlib']}
-    tests_require=['pytest']
     entry_points={'console_scripts': []},
 )
