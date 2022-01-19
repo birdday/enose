@@ -1,5 +1,3 @@
-# Code for caluclating the Henry's Constants for a variety of gas mixutres.
-
 import copy
 import csv
 import itertools
@@ -8,16 +6,314 @@ import numpy as np
 import os
 import pandas as pd
 import random
+import warnings
 import yaml
 
 import tensorflow as tf
 import tensorflow_probability as tfp
 
+# ----
+alg = Algorithm()
+gases = ['CO2', 'N2', 'O2']
+comp_range = [[0,0.1], [0.6, 1.0], [0.1, 0.3]]
+comp_spacing = [0.01, 0.01, 0.01]
+conv_limits = [0.001, 0.001, 0.001]
+alg.set_composition_settings(gases, comp_range, comp_spacing, conv_limits)
 
-def yaml_loader(filepath):
-    with open(filepath, 'r') as yaml_file:
-        data = yaml.load(yaml_file)
-    return data
+alg.comps
+comp_limits = [[min(alg.comps)[i], max(alg.comps)[i]] for i in range(len(gases))]
+min(alg.comps)
+max(alg.comps)
+# ----
+
+class Algorithm:
+    """
+    This class represents the algorithm.
+    """
+    def __init__(self):
+        # Once per instance
+        self.method = str() # Set default value
+        self.array = SensorArray()
+        self.gases = []
+        self.convergence_limits = {}
+        self.max_cycles = int(10) # 10 = default value
+
+        # Once per cycle
+        self.cycle_number = int(0)
+        self.comps = np.array([])
+        self.comps_range = {}
+        self.comps_spacing = {}
+        self.convergence_status = {}
+
+    # --- Start Up Functions ---
+
+    # --- Log Functions ---
+    # def log_settings():
+    #     """
+    #     First thing logged to the output file.
+    #     Things to log: algorithm type, array, gases, convergence limits, ...
+    #     """
+    #     # Log initialize all values
+    #     cycle_number = self.cycle_number
+    #     comps = self.comps
+    #     convergence_status = self.convergence_status
+    #
+    # def log_cycle_overview():
+    #     """
+    #     Things to log: cycle number, gases, composition range, composition spacing, convergence_status,
+    #     """
+    #     # Log initialize all values
+    #     # Keep track of cycles
+    #     cycle_number = self.cycle_number
+    #     comps = self.comps
+    #     convergence_status = self.convergence_status
+    #
+    #     #Get min/max component mole frac
+    #     all_molefrac = comps.values
+    #     min_molefrac = all_molefrac.min(axis=0)
+    #     max_molefrac = all_molefrac.max(axis=0)
+    #     molefrac_diff = max_molefrac-min_molefrac
+    #     for g in range(len(gases)):
+    #         gas = gases[g]
+    #         all_comp_sets[gas].extend([[min_molefrac[g], max_molefrac[g]]])
+    #
+    # def log_cycle_comps_and_masses():
+    #     # Record Initial Composition Range
+    #     cycle_number = self.cycle_number
+    #     comps = self.comps
+    #     convergence_status = self.convergence_status
+    #
+    #     # Append to csv
+    #     # df = pd.DataFrame(self.array.element.masses, columns=self.array.element.material)
+    #
+    # def log_final_results():
+
+    # --- Update Functions ---
+    def set_composition_settings(self, gases, comps_range, comps_spacing, conv_limits):
+        self.gases = gases
+        self.comps_range = comps_range
+        self.comps_spacing = comps_spacing
+        self.comps = self.create_initial_compositions()
+
+        self.convergence_limits = conv_limits
+        self.convergence_status = {gas: False for gas in gases}
+
+
+    def create_initial_compositions(self):
+        """
+        Creates a set of uniformly spaced compositions.
+        """
+        limits = self.comps_range
+        if type(limits) == dict:
+            limits = [limits[gas] for gas in self.gases]
+        spacing = self.comps_spacing
+        if type(spacing) == dict:
+            spacing = [spacing[gas] for gas in self.gases]
+
+        number_of_values = [ (limits[i][1]-limits[i][0])/spacing[i]+1 for i in range(len(limits))]
+        number_of_values = [int(np.ceil(value)) for value in number_of_values]
+        comps_by_gas = [np.linspace(limits[i][0], limits[i][1], number_of_values[i]) for i in range(len(limits))]
+        all_comps = [item for item in itertools.product(*comps_by_gas) if np.sum(np.round(item,15)) == 1]
+
+        return all_comps
+
+    # def calculate_predicted_masses():
+    #     # Convert from composition spa ce to mass space to probability space
+    #     print('\tCreate Pseudo-simulated Data...')
+    #     # henrys_data = henrys_data_array
+    #     simulated_masses, comps = create_pseudo_simulated_data_from_array(array, comps, gases, henrys_data, append_to_df=True)
+    #
+    # def calculate_element_probabilities():
+    #
+    def check_convergence():
+        gases = self.gases
+        comp_diff = [max(alg.comps)[i] - min(alg.comps)[i] for i in range(len(gases))]
+        conv_limits = self.convergence_limits
+
+        for gas in gases:
+            final_comp_set[gas] = [min_molefrac[g], max_molefrac[g]]
+            if molefrac_diff[g] <= convergence_limits[gas]:
+                convergence_status[gas] = True
+            else:
+                convergence_status[gas] = False
+
+        if False not in convergence_status.values():
+            return True
+        else:
+            return False
+    #
+    # def execute(self):
+    #
+    #     self.log_settings()
+    #     for i in range(num_cycles):
+    #
+    #         self.cycle_number += 1
+    #
+    #         print('\tCalculating Element / Array Probability')
+    #         comps, sorted_indicies = calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, comps, array, std_dev=std_dev, append_to_df=True)
+    #
+    #         # Filter Out Low-Probability Compositions
+    #         print('\tFiltering Low-probability Compositions.')
+    #         filtered_indicies = sorted_indicies[0:int(np.ceil(fraction_to_keep*len(sorted_indicies)))]
+    #         filtered_comps = comps.loc[filtered_indicies, gases]
+    #         print('\tNumber of Comps. after filtering = ', len(filtered_comps))
+    #
+    #         # Check / Update convergence status
+    #         if self.check_convergence() == True:
+    #             exit_condition = 'Compositions Converged.'
+    #             print('Converged - Exiting!\n\n')
+    #             break
+    #         if self.cycle_number >= self.max_cycles:
+    #             exit_condition = 'Maximum Number of Cycles Reached.'
+    #             break
+    #
+    #         # If not converged / not at max number of cycles, continue.
+    #         print('\tSubdividing Grid...\n')
+    #         for key in self.spacing.keys():
+    #             self.spacing[key] = self.spacing[key]*0.5;
+    #         comps = subdivide_grid_from_array(filtered_comps, gases, spacing)
+
+
+class SensorArray:
+    """
+    This class represents the gas sensor array.
+    """
+    def __init__(self, *args):
+        # Once per instance
+        self.elements = self.set_elements(args)
+        self.name = [element.name for element in self.elements]
+        self.size = len(self.elements)
+
+        # Once per cycle
+        self.comps = np.array([]) # It is recommended to keep this empty and use the global compositions.
+        self.probability = np.array([])
+        self.kld = float()
+
+    # --- Start Up Functions ---
+    def set_elements(self, args):
+        elements = []
+        for arg in args:
+            if type(arg) == Element:
+                elements.append(arg)
+            elif type(arg) == Material or type(arg) == str:
+                elements.append(Element(arg))
+            else:
+                raise NameError(f'Invalid type {type(arg)} in elements.')
+
+        return elements
+
+    # --- Update Functions ---
+    def calculate_element_probability(self):
+        # Use to concatonate elements masses / detected vals and caluclate corresponding probailities with a singe tensorflow call (if significantly faster).
+        element_detected_masses = np.array([element.mass for element in self.elements])
+        element_stdevs = np.array([element.sensitivity for element in self.elements])
+        element_predicted_masses = np.transpose(np.array([element.predicted_masses for element in self.elements]))
+
+        # Calculate probabilities with tensorflow
+        dists = tfp.distributions.TruncatedNormal(element_detected_masses, element_stdevs, 0, np.inf)
+        probs = dists.prob(element_predicted_masses)
+        f_norm = 1/np.sum(probs, axis=0)
+        probs = np.transpose(np.multiply(f_norm, probs))
+
+        # Update element probibilities
+        for i, element in enumerate(self.elements):
+            element.probability = probs[i]
+
+    def calculate_array_probability(self):
+        """
+        N.B. For a large number of elements and/or compositions, conseuctively mutliplied probabilities can become quite small, so it is safer to normalize each time, so we do not lose relative precision. (Min value ~= 1e-323).
+        """
+        array_probs = None
+        for element in self.elements:
+            element_probs = element.probability
+            if array_probs is None:
+                array_probs = copy.deepcopy(element_probs)
+            else:
+                array_probs = np.multiply(array_probs, element_probs)
+                if np.sum(array_probs) != 0:
+                    f_norm = 1/np.sum(array_probs)
+                    array_probs = np.multiply(f_norm, array_probs)
+                else:
+                    raise NameError('Array probability equals 0 at all compositions.')
+
+        self.probability = array_probs
+
+    def calculate_cycle_kld(self):
+        probs = self.probability
+        n_comps = len(probs)
+        kld = np.sum([probs[i]*np.log(probs[i]*n_comps) for i in range(n_comps) if probs[i] > 0])
+
+        return kld
+
+    # def calculate_kld():
+
+
+class Element:
+    """
+    This class represents a single sensing element in the gas sensor array.
+    """
+    def __init__(self, material):
+        # Once per sample
+        self.material = self.set_material(material)
+        self.name = self.material.name
+        self.mass = float()
+        self.sensitivity = float()
+
+        # Once per cycle
+        self.comps = np.array([]) # It is recommended to keep this empty and use the global compositions.
+        self.predicted_masses = np.array([])
+        self.probability = np.array([])
+        self.kld = float()
+
+    # --- Start Up Functions ---
+    def set_material(self, material):
+        if type(material) == Material:
+            return material
+        elif type(material) == str:
+            return Material(material)
+        else:
+            raise NameError('Invalid material type for element.')
+
+    # --- Update Functions ---
+    def assign_predicted_masses(self, comp_and_mass_data):
+        """
+        Use this to load mass data when all compositions have been explicitly simulated. Note that the element should then NOT be used in the algorithm, as there is no infomration to calculate masses on the fly. Sub-division could be implemented if desired, but likely an obselte feature.
+        """
+
+    def calculate_predicted_masses(self, comps):
+        """
+        Use this to calculate the total adsorbed mass as a function of composition using adsorption coefficients(K_H*), baseline adsorption values(m_o), and maximum allowed trace gas mole fraction(y_max). Coefficients can either be defined as one per MOF/trace gas (i.e. CO2 is considered a trace gas), or one per MOF/trace gas/background composition (i.e., CO2 is considered a background gas).
+        """
+
+    def calculate_probability(self):
+        # Calculate probabilities with tensorflow
+        dists = tfp.distributions.TruncatedNormal(self.mass, self.sensitivity, 0, np.inf)
+        probs = dists.prob(self.predicted_masses)
+        f_norm = 1/np.sum(probs)
+        probs = np.multiply(f_norm, probs)
+
+        self.probability = probs
+
+
+class Material:
+    """
+    This class represents the sensing material used in a single sensing element.
+    """
+    def __init__(self, material):
+        self.name = material
+        self.structure = str()
+
+    # --- Start Up Functions ---
+    def check_for_structure(material):
+            material_dir = 'temp'
+            if f'{material}.cif' in material_dir:
+                self.structure = f'{material}.cif'
+
+
+
+
+
+
 
 
 def load_filter_unite_henrys_data(filepath, gases, min_comp=0.0):
@@ -144,33 +440,6 @@ def create_pseudo_simulated_data_from_array(mof_list, comps_df, gases, kh_datafr
     return simulated_masses, comps_df
 
 
-def calculate_element_and_array_pmf_tf(simulated_masses, breath_sample_masses, comps, array, std_dev=0.01, append_to_df=False):
-
-    distributions = tfp.distributions.TruncatedNormal(simulated_masses, std_dev, 0, np.inf)
-    element_pmfs = distributions.prob(breath_sample_masses)
-    element_norm_factors = 1/np.sum(element_pmfs, axis=0)
-    element_pmfs_normalized = np.multiply(element_norm_factors, element_pmfs)
-
-    # nnepmf = non-normalized element pmfs
-    # nepmf = normalized element pmfs
-    array_pmfs_nnepmf = np.prod(element_pmfs, axis=1)
-    array_pmfs_nepmf = np.prod(element_pmfs_normalized, axis=1)
-    array_norm_factor = 1/np.sum(array_pmfs_nepmf, axis=0)
-    array_pmfs_normalized = np.multiply(array_norm_factor, array_pmfs_nepmf)
-
-    if append_to_df == True:
-        for i in range(len(array)):
-            comps[array[i]+'_pmf'] = np.transpose(element_pmfs_normalized)[i]
-        comps['array_pmf'] = array_pmfs_normalized
-
-    # array_pmfs_nnepmf_sorted = sorted(array_pmfs_nnepmf, reverse=True)
-    array_pmfs_normalized_sorted = sorted(array_pmfs_normalized, reverse=True)
-    sorted_indicies = list(reversed(np.argsort(array_pmfs_normalized)))
-    # sorted_indicies are NOT necessarily the same between nnempf_sorted and normalized_sorted since the elements are essentially given different "weights" by not normalizing their total probabilities.
-
-    return comps, sorted_indicies
-
-
 def subdivide_grid_from_array(comps, gases, spacing):
 
     new_grid_points = []
@@ -192,6 +461,13 @@ def subdivide_grid_from_array(comps, gases, spacing):
     new_grid_points = pd.DataFrame(new_grid_points, columns=gases)
 
     return new_grid_points
+
+
+
+
+
+
+
 
 
 def check_prediciton_of_known_comp(henrys_data_no_air_effect, henrys_data_only_air_effect, henrys_data_combo, gases, mof_list, known_comp):
